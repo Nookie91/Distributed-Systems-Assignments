@@ -19,7 +19,8 @@ import activitystreamer.util.Settings;
 public class Server {
 	private static final Logger log = LogManager.getLogger();
 	
-	private static void help(Options options){
+	private static void help(Options options)
+	{
 		String header = "An ActivityStream Server for Unimelb COMP90015\n\n";
 		String footer = "\ncontact aharwood@unimelb.edu.au for issues.";
 		HelpFormatter formatter = new HelpFormatter();
@@ -27,7 +28,8 @@ public class Server {
 		System.exit(-1);
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) 
+	{
 		
 		log.info("reading command line options");
 		
@@ -44,57 +46,78 @@ public class Server {
 		CommandLineParser parser = new DefaultParser();
 		
 		CommandLine cmd = null;
-		try {
+		try 
+		{
 			cmd = parser.parse( options, args);
-		} catch (ParseException e1) {
+		} 
+		catch (ParseException e1) 
+		{
 			help(options);
 		}
 		
-		if(cmd.hasOption("lp")){
-			try{
+		if(cmd.hasOption("lp"))
+		{
+			try
+			{
 				int port = Integer.parseInt(cmd.getOptionValue("lp"));
 				Settings.setLocalPort(port);
-			} catch (NumberFormatException e){
+			} 
+			catch (NumberFormatException e)
+			{
 				log.info("-lp requires a port number, parsed: "+cmd.getOptionValue("lp"));
 				help(options);
 			}
 		}
 		
-		if(cmd.hasOption("rh")){
+		if(cmd.hasOption("rh"))
+		{
 			Settings.setRemoteHostname(cmd.getOptionValue("rh"));
 		}
 		
-		if(cmd.hasOption("rp")){
-			try{
+		if(cmd.hasOption("rp"))
+		{
+			try
+			{
 				int port = Integer.parseInt(cmd.getOptionValue("rp"));
 				Settings.setRemotePort(port);
-			} catch (NumberFormatException e){
+			} 
+			catch (NumberFormatException e)
+			{
 				log.error("-rp requires a port number, parsed: "+cmd.getOptionValue("rp"));
 				help(options);
 			}
 		}
 		
-		if(cmd.hasOption("a")){
-			try{
+		if(cmd.hasOption("a"))
+		{
+			try
+			{
 				int a = Integer.parseInt(cmd.getOptionValue("a"));
 				Settings.setActivityInterval(a);
-			} catch (NumberFormatException e){
+			} 
+			catch (NumberFormatException e)
+			{
 				log.error("-a requires a number in milliseconds, parsed: "+cmd.getOptionValue("a"));
 				help(options);
 			}
 		}
 		
-		try {
+		try 
+		{
 			Settings.setLocalHostname(InetAddress.getLocalHost().getHostAddress());
-		} catch (UnknownHostException e) {
+		} 
+		catch (UnknownHostException e) 
+		{
 			log.warn("failed to get localhost IP address");
 		}
 		
-		if(cmd.hasOption("lh")){
+		if(cmd.hasOption("lh"))
+		{
 			Settings.setLocalHostname(cmd.getOptionValue("lh"));
 		}
 
-		if(cmd.hasOption("s")){
+		if(cmd.hasOption("s"))
+		{
 			Settings.setSecret(cmd.getOptionValue("s"));
 		}
 		
@@ -104,12 +127,15 @@ public class Server {
 		final ControlSolution c = ControlSolution.getInstance(); 
 		// the following shutdown hook doesn't really work, it doesn't give us enough time to
 		// cleanup all of our connections before the jvm is terminated.
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run() {  
-				c.setTerm(true);
-				c.interrupt();
-		    }
-		 });
+		Runtime.getRuntime().addShutdownHook(new Thread() 
+												{
+													public void run() 
+													{  
+														c.setTerm(true);
+														c.interrupt();
+												    }
+												 }
+											);
 	}
 
 }

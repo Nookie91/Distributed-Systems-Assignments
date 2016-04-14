@@ -14,14 +14,17 @@ public class ClientSolution extends Thread {
 	 */
 	
 	// this is a singleton object
-	public static ClientSolution getInstance(){
-		if(clientSolution==null){
+	public static ClientSolution getInstance()
+	{
+		if(clientSolution==null)
+		{
 			clientSolution = new ClientSolution();
 		}
 		return clientSolution;
 	}
 	
-	public ClientSolution(){
+	public ClientSolution()
+	{
 		/*
 		 * some additional initialization
 		 */
@@ -34,12 +37,14 @@ public class ClientSolution extends Thread {
 	}
 	
 	// called by the gui when the user clicks "send"
-	public void sendActivityObject(JSONObject activityObj){
+	public void sendActivityObject(JSONObject activityObj)
+	{
 		
 	}
 	
 	// called by the gui when the user clicks disconnect
-	public void disconnect(){
+	public void disconnect()
+	{
 		textFrame.setVisible(false);
 		/*
 		 * other things to do
@@ -49,7 +54,8 @@ public class ClientSolution extends Thread {
 
 	// the client's run method, to receive messages
 	@Override
-	public void run(){
+	public void run()
+	{
 		
 	}
 

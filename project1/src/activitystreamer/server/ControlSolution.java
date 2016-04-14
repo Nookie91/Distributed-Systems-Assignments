@@ -9,7 +9,8 @@ import org.apache.logging.log4j.Logger;
 
 
 
-public class ControlSolution extends Control {
+public class ControlSolution extends Control 
+{
 	private static final Logger log = LogManager.getLogger();
 	
 	/*
@@ -17,14 +18,17 @@ public class ControlSolution extends Control {
 	 */
 	
 	// since control and its subclasses are singleton, we get the singleton this way
-	public static ControlSolution getInstance() {
-		if(control==null){
+	public static ControlSolution getInstance() 
+	{
+		if(control==null)
+		{
 			control=new ControlSolution();
 		} 
 		return (ControlSolution) control;
 	}
 	
-	public ControlSolution() {
+	public ControlSolution() 
+	{
 		super();
 		/*
 		 * Do some further initialization here if necessary
@@ -43,11 +47,13 @@ public class ControlSolution extends Control {
 	 * a new incoming connection
 	 */
 	@Override
-	public Connection incomingConnection(Socket s) throws IOException{
+	public Connection incomingConnection(Socket s) throws IOException
+	{
 		Connection con = super.incomingConnection(s);
 		/*
 		 * do additional things here
 		 */
+		System.out.println(s);
 		
 		return con;
 	}
@@ -56,7 +62,8 @@ public class ControlSolution extends Control {
 	 * a new outgoing connection
 	 */
 	@Override
-	public Connection outgoingConnection(Socket s) throws IOException{
+	public Connection outgoingConnection(Socket s) throws IOException
+	{
 		Connection con = super.outgoingConnection(s);
 		/*
 		 * do additional things here
@@ -71,7 +78,8 @@ public class ControlSolution extends Control {
 	 * the connection has been closed
 	 */
 	@Override
-	public void connectionClosed(Connection con){
+	public void connectionClosed(Connection con)
+	{
 		super.connectionClosed(con);
 		/*
 		 * do additional things here
@@ -84,7 +92,8 @@ public class ControlSolution extends Control {
 	 * return true if the connection should be closed, false otherwise
 	 */
 	@Override
-	public synchronized boolean process(Connection con,String msg){
+	public synchronized boolean process(Connection con,String msg)
+	{
 		/*
 		 * do additional work here
 		 * return true/false as appropriate
@@ -100,7 +109,8 @@ public class ControlSolution extends Control {
 	 * Return true if server should shut down, false otherwise
 	 */
 	@Override
-	public boolean doActivity(){
+	public boolean doActivity()
+	{
 		/*
 		 * do additional work here
 		 * return true/false as appropriate

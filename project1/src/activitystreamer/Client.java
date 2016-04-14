@@ -16,7 +16,8 @@ public class Client {
 	
 	private static final Logger log = LogManager.getLogger();
 	
-	private static void help(Options options){
+	private static void help(Options options)
+	{
 		String header = "An ActivityStream Client for Unimelb COMP90015\n\n";
 		String footer = "\ncontact aharwood@unimelb.edu.au for issues.";
 		HelpFormatter formatter = new HelpFormatter();
@@ -24,7 +25,8 @@ public class Client {
 		System.exit(-1);
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) 
+	{
 		
 		log.info("reading command line options");
 		
@@ -39,31 +41,41 @@ public class Client {
 		CommandLineParser parser = new DefaultParser();
 		
 		CommandLine cmd = null;
-		try {
+		try 
+		{
 			cmd = parser.parse( options, args);
-		} catch (ParseException e1) {
+		} 
+		catch (ParseException e1) 
+		{
 			help(options);
 		}
 	
-		if(cmd.hasOption("rh")){
+		if(cmd.hasOption("rh"))
+		{
 			Settings.setRemoteHostname(cmd.getOptionValue("rh"));
 		}
 		
-		if(cmd.hasOption("rp")){
-			try{
+		if(cmd.hasOption("rp"))
+		{
+			try
+			{
 				int port = Integer.parseInt(cmd.getOptionValue("rp"));
 				Settings.setRemotePort(port);
-			} catch (NumberFormatException e){
+			} 
+			catch (NumberFormatException e)
+			{
 				log.error("-rp requires a port number, parsed: "+cmd.getOptionValue("rp"));
 				help(options);
 			}
 		}
 		
-		if(cmd.hasOption("s")){
+		if(cmd.hasOption("s"))
+		{
 			Settings.setSecret(cmd.getOptionValue("s"));
 		}
 		
-		if(cmd.hasOption("u")){
+		if(cmd.hasOption("u"))
+		{
 			Settings.setUsername(cmd.getOptionValue("u"));
 		}
 		

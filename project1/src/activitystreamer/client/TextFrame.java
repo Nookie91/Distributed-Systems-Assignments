@@ -26,7 +26,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 @SuppressWarnings("serial")
-public class TextFrame extends JFrame implements ActionListener {
+public class TextFrame extends JFrame implements ActionListener 
+{
 	private static final Logger log = LogManager.getLogger();
 	private JTextArea inputText;
 	private JTextArea outputText;
@@ -34,7 +35,8 @@ public class TextFrame extends JFrame implements ActionListener {
 	private JButton disconnectButton;
 	private JSONParser parser = new JSONParser();
 	
-	public TextFrame(){
+	public TextFrame()
+	{
 		setTitle("ActivityStreamer Text I/O");
 		JPanel mainPanel = new JPanel();
 		mainPanel.setLayout(new GridLayout(1,2));
@@ -76,7 +78,8 @@ public class TextFrame extends JFrame implements ActionListener {
 		setVisible(true);
 	}
 
-	public void setOutputText(final JSONObject obj){
+	public void setOutputText(final JSONObject obj)
+	{
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		JsonParser jp = new JsonParser();
 		JsonElement je = jp.parse(obj.toJSONString());
@@ -87,18 +90,25 @@ public class TextFrame extends JFrame implements ActionListener {
 	}
 	
 	@Override
-	public void actionPerformed(ActionEvent e) {
-		if(e.getSource()==sendButton){
+	public void actionPerformed(ActionEvent e) 
+	{
+		if(e.getSource()==sendButton)
+		{
 			String msg = inputText.getText().trim().replaceAll("\r","").replaceAll("\n","").replaceAll("\t", "");
 			JSONObject obj;
-			try {
+			try 
+			{
 				obj = (JSONObject) parser.parse(msg);
 				ClientSolution.getInstance().sendActivityObject(obj);
-			} catch (ParseException e1) {
+			} 
+			catch (ParseException e1) 
+			{
 				log.error("invalid JSON object entered into input text field, data not sent");
 			}
 			
-		} else if(e.getSource()==disconnectButton){
+		} 
+		else if(e.getSource()==disconnectButton)
+		{
 			ClientSolution.getInstance().disconnect();
 		}
 	}
