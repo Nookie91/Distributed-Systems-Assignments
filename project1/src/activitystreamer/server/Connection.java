@@ -85,7 +85,9 @@ public class Connection extends Thread
 		} 
 		catch (IOException e) 
 		{
-			log.error("connection "+Settings.socketAddress(socket)+" closed with exception: "+e);
+			log.error("connection " + Settings.socketAddress(socket)
+					  + " closed with exception: " + e
+					 );
 			Control.getInstance().connectionClosed(this);
 		}
 		open=false;
@@ -101,3 +103,5 @@ public class Connection extends Thread
 		return open;
 	}
 }
+
+
