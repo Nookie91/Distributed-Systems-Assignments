@@ -33,7 +33,7 @@ public class Listener extends Thread
 			try 
 			{
 				clientSocket = serverSocket.accept();
-				Control.getInstance().incomingConnection(clientSocket);
+				ControlSolution.getInstance().incomingConnection(clientSocket);
 			} 
 			catch (IOException e) 
 			{

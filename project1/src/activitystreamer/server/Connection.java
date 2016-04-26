@@ -17,6 +17,8 @@ import activitystreamer.util.Settings;
 
 public class Connection extends Thread 
 {
+	public static enum ConnectionType {CLIENT,SERVER,UNDEFINED};
+
 	private static final Logger log = LogManager.getLogger();
 	private DataInputStream in;
 	private DataOutputStream out;
@@ -25,6 +27,12 @@ public class Connection extends Thread
 	private boolean open = false;
 	private Socket socket;
 	private boolean term=false;
+
+	private ConnectionType connectionType;
+
+	private boolean isConnectionAuthenticated;
+	private String loggedInUser;
+	private int serverID;
 	
 	Connection(Socket socket) throws IOException
 	{
@@ -34,6 +42,10 @@ public class Connection extends Thread
 	    outwriter = new PrintWriter(out, true);
 	    this.socket = socket;
 	    open = true;
+	    isConnectionAuthenticated = false;
+		loggedInUser = null;
+		connectionType = ConnectionType.UNDEFINED;
+		serverID = -1;
 	    start();
 	}
 	
@@ -77,10 +89,10 @@ public class Connection extends Thread
 			String data;
 			while(!term && (data = inreader.readLine())!=null)
 			{
-				term=Control.getInstance().process(this,data);
+				term=ControlSolution.getInstance().process(this,data);
 			}
 			log.debug("connection closed to "+Settings.socketAddress(socket));
-			Control.getInstance().connectionClosed(this);
+			ControlSolution.getInstance().connectionClosed(this);
 			in.close();
 		} 
 		catch (IOException e) 
@@ -88,7 +100,7 @@ public class Connection extends Thread
 			log.error("connection " + Settings.socketAddress(socket)
 					  + " closed with exception: " + e
 					 );
-			Control.getInstance().connectionClosed(this);
+			ControlSolution.getInstance().connectionClosed(this);
 		}
 		open=false;
 	}
@@ -101,6 +113,55 @@ public class Connection extends Thread
 	public boolean isOpen() 
 	{
 		return open;
+	}
+
+	public void setIsConnectionAuthenticated(boolean status)
+	{
+		isConnectionAuthenticated = status;
+	}
+	public boolean isConnectionAuthenticated()
+	{
+		return isConnectionAuthenticated;
+	}
+
+	public void setLoggedInUser(String username)
+	{
+		loggedInUser = username;
+	}
+
+	public String getLoggedInUser()
+	{
+		return loggedInUser;
+	}
+
+	public void setConnectionType(ConnectionType type)
+	{
+		connectionType = type;
+	}
+
+	public boolean isConnectionServer()
+	{
+		return (connectionType == ConnectionType.SERVER);
+	}
+
+	public boolean isConnectionClient()
+	{
+		return (connectionType == ConnectionType.CLIENT);
+	}
+
+	public ConnectionType getConnectionType()
+	{
+		return connectionType;
+	}
+
+	public void setServerID(int id)
+	{
+		serverID = id;
+	}
+
+	public int getServerID()
+	{
+		return serverID;
 	}
 }
 
