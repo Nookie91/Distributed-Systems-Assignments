@@ -1,18 +1,25 @@
 package activitystreamer.message;
 
+import java.util.Map;
+
 public class LogoutMessage extends Message 
 {
     private static String COMMAND = "LOGOUT";
-    private static String[] keys = ["command"];
+    private static String[] keys = {"command"};
 
-    Message()
+    public LogoutMessage()
     {
-        super();
+        super(COMMAND);
     }
 
-    Message(String stringMessage)
+    public LogoutMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
     }
 
 

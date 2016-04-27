@@ -1,29 +1,36 @@
 package activitystreamer.message;
 
+import java.util.Map;
+
 public class RedirectMessage extends Message 
 {
     private static String COMMAND = "REDIRECT";
-    private static String[] keys = ["command", "hostname", "port"];
+    private static String[] keys = {"command", "hostname", "port"};
 
-    RedirectMessage(String hostname, int port)
+    public RedirectMessage(String hostname, int port)
     {
-        super();
+        super(COMMAND);
         message.put("hostname", hostname);
-        message.put("port",port);
+        message.put("port",Integer.toString(port));
     }
 
-    RedirectMessage(String stringMessage)
+    public RedirectMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
     }
 
     public String getHostname()
     {
-        return message.getString("hostname");
+        return message.get("hostname");
     }
 
     public int getPort()
     {
-        return message.getInt("port");
+        return Integer.parseInt(message.get("port"));
     }
 }

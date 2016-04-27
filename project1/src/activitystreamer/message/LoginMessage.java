@@ -1,53 +1,49 @@
 package activitystreamer.message;
 
+import java.util.Map;
+
+import activitystreamer.server.Connection;
+
 public class LoginMessage extends Message 
 {
     private static String COMMAND = "AUTHENTICATE";
-    private static String[] keys = ["command", "username", "secret"];
+    private static String[] keys = {"command", "username", "secret"};
 
-    LoginMessage(String username, String secret)
+    public LoginMessage(String username, String secret)
     {
-        super();
+        super(COMMAND);
         message.put("username", username);
         message.put("secret", secret);
     }
 
-    LoginMessage(String stringMessage)
+    public LoginMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
     }
-
-    @override
-    public boolean checkFields()
+    
+    public String[] getKeys()
     {
-        for(String key in keys)
+    	return keys;
+    }
+
+    public boolean checkFields(Connection con)
+    {
+        for(String key: keys)
         {
-            try
+            if(key.equals("secret") &&
+            	message.containsKey("username")&&
+            	message.get("username").equals("anomynous"))
             {
-                if(key.equalTo("secret") == 0)
-                {
-                    if(message.getString("username").equalTo("anomynous") == 0)
-                    {
-                        continue;
-                    }
-                }
+                    continue;
             }
-            catch(JSONException e)
+            else
             {
-                InvalidMessage error = new InvalidMessage("the received message did not contain a username");
-                error.sendMessage();
-                return true;
-            }
-            
-            try
-            {
-                message.getString(key);
-            }
-            catch(JSONException e)
-            {
-                InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
-                error.sendMessage();
-                return true;
+            	if(!message.containsKey(key))
+            	{
+            		InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
+                    con.writeMsg(error.toString());
+                    return true;            		
+            	}
             }
         }
         return false;
@@ -55,15 +51,15 @@ public class LoginMessage extends Message
 
     public String getUsername()
     {
-        return message.getString("username");
+        return message.get("username");
     }
 
     public String getSecret()
     {
-        if(message.getString("username").equalTo("anomynous") == 0)
+        if(message.get("username").equals("anomynous"))
         {
             return "";
         }
-        return message.getString("secret");
+        return message.get("secret");
     }
 }

@@ -1,29 +1,36 @@
 package activitystreamer.message;
 
+import java.util.Map;
+
 public class AuthenticateMessage extends Message 
 {
     private static String COMMAND = "AUTHENTICATE";
-    private static String[] keys = ["command", "secret"];
+    private static String[] keys = {"command", "secret"};
 
-    AuthenticateMessage(String secret)
+    public AuthenticateMessage(String secret)
     {
-        super();
+        super(COMMAND);
         message.put("secret",secret);
     }
 
-    AuthenticateMessage(String stringMessage)
+    public AuthenticateMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
     }
 
     public String getSecret()
     {
-        return message.getString("secret");
+        return message.get("secret");
     }
 
     public boolean doesSecretMatch(String secret)
     {
-        if(secret.compareTo(message.getString("secret")) == 0)
+        if(secret.equals(message.get("secret")))
         {
             return true;
         }

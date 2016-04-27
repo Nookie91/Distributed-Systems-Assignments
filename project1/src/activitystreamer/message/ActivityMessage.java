@@ -1,56 +1,53 @@
 package activitystreamer.message;
 
+import java.util.Map;
+
+import activitystreamer.server.Connection;
+
 public class ActivityMessage extends Message 
 {
     private static String COMMAND = "ACTIVITY_MESSAGE";
-    private static String[] keys = ["command", "username", "secret", "activty"];
+    private static String[] keys = {"command", "username", "secret", "activty"};
 
-    ActivityMessage(String username, String secret, String activty)
+    public ActivityMessage(String username, String secret, String activity)
     {
-        super();
+        super(COMMAND);
         message.put("username",username);
         message.put("secret",secret);
         message.put("activity",activity);
 
     }
 
-    ActivityMessage(String stringMessage)
+    public ActivityMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
     }
-
-
-    @override
-    public boolean checkFields()
+    
+    public String[] getKeys()
     {
-        for(String key in keys)
+    	return keys;
+    }
+
+
+    @Override
+    public boolean checkFields(Connection con)
+    {
+        for(String key: keys)
         {
-            try
+            if(key.equals("secret") &&
+            	message.containsKey("username")&&
+            	message.get("username").equals("anomynous"))
             {
-                if(key.equalTo("secret") == 0)
-                {
-                    if(message.getString("username").equalTo("anomynous") == 0)
-                    {
-                        continue;
-                    }
-                }
+                    continue;
             }
-            catch(JSONException e)
+            else
             {
-                InvalidMessage error = new InvalidMessage("the received message did not contain a username");
-                error.sendMessage();
-                return true;
-            }
-            
-            try
-            {
-                message.getString(key);
-            }
-            catch(JSONException e)
-            {
-                InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
-                error.sendMessage();
-                return true;
+            	if(!message.containsKey(key))
+            	{
+            		InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
+                    con.writeMsg(error.toString());
+                    return true;            		
+            	}
             }
         }
         return false;
@@ -58,20 +55,20 @@ public class ActivityMessage extends Message
 
     public String getUsername()
     {
-        return message.getString("username");
+        return message.get("username");
     }
 
     public String getSecret()
     {
-        if(message.getString("username").equalTo("anomynous") == 0)
+        if(message.get("username").equals("anomynous"))
         {
             return "";
         }
-        return message.getString("secret");
+        return message.get("secret");
     }
 
     public String getActivity()
     {
-        return message.getString("activty");
+        return message.get("activty");
     }
 }

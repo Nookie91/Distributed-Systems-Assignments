@@ -2,7 +2,7 @@ package activitystreamer.server;
 
 
 
-public class AuthorisedServer()
+public class AuthorisedServer
 {
     private String id;
     private int load;
@@ -27,7 +27,7 @@ public class AuthorisedServer()
         return load;
     }
 
-    public updateLoad(int load)
+    public void updateLoad(int load)
     {
         this.load = load;
     }

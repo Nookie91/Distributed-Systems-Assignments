@@ -1,19 +1,26 @@
 package activitystreamer.message;
 
-public class oginFailedLMessage extends Message 
+import java.util.Map;
+
+public class LoginFailedMessage extends Message 
 {
     private static String COMMAND = "LOGIN_FAILED";
-    private static String[] keys = ["command", "info"];
+    private static String[] keys = {"command", "info"};
 
-    Message()
+    public LoginFailedMessage()
     {
-        super();
-        message.put("info", "attempt to login with wrong secret")
+        super(COMMAND);
+        message.put("info", "attempt to login with wrong secret");
     }
 
-    Message(String stringMessage)
+    public LoginFailedMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
     }
 
 

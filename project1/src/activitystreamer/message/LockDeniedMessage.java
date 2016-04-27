@@ -1,30 +1,37 @@
 package activitystreamer.message;
 
+import java.util.Map;
+
 public class LockDeniedMessage extends Message 
 {
     private static String COMMAND = "LOCK_DENIED";
-    private static String[] keys = ["command", "username", "secret"];
+    private static String[] keys = {"command", "username", "secret"};
 
-    LockDeniedMessage(String username, String secret)
+    public LockDeniedMessage(String username, String secret)
     {
-        super();
+        super(COMMAND);
         message.put("username",username);
         message.put("secret",secret);
     }
 
-    LockDeniedMessage(String stringMessage)
+    public LockDeniedMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
     }
 
     public String getUsername()
     {
-        return message.getString("username");
+        return message.get("username");
     }    
 
     public String getSecret()
     {
-        return message.getString("secret");
+        return message.get("secret");
     }
 
 }

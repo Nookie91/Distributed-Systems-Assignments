@@ -28,11 +28,6 @@ public class Connection extends Thread
 	private Socket socket;
 	private boolean term=false;
 
-	private ConnectionType connectionType;
-
-	private boolean isConnectionAuthenticated;
-	private String loggedInUser;
-	private int serverID;
 	
 	Connection(Socket socket) throws IOException
 	{
@@ -42,10 +37,6 @@ public class Connection extends Thread
 	    outwriter = new PrintWriter(out, true);
 	    this.socket = socket;
 	    open = true;
-	    isConnectionAuthenticated = false;
-		loggedInUser = null;
-		connectionType = ConnectionType.UNDEFINED;
-		serverID = -1;
 	    start();
 	}
 	
@@ -113,55 +104,6 @@ public class Connection extends Thread
 	public boolean isOpen() 
 	{
 		return open;
-	}
-
-	public void setIsConnectionAuthenticated(boolean status)
-	{
-		isConnectionAuthenticated = status;
-	}
-	public boolean isConnectionAuthenticated()
-	{
-		return isConnectionAuthenticated;
-	}
-
-	public void setLoggedInUser(String username)
-	{
-		loggedInUser = username;
-	}
-
-	public String getLoggedInUser()
-	{
-		return loggedInUser;
-	}
-
-	public void setConnectionType(ConnectionType type)
-	{
-		connectionType = type;
-	}
-
-	public boolean isConnectionServer()
-	{
-		return (connectionType == ConnectionType.SERVER);
-	}
-
-	public boolean isConnectionClient()
-	{
-		return (connectionType == ConnectionType.CLIENT);
-	}
-
-	public ConnectionType getConnectionType()
-	{
-		return connectionType;
-	}
-
-	public void setServerID(int id)
-	{
-		serverID = id;
-	}
-
-	public int getServerID()
-	{
-		return serverID;
 	}
 }
 

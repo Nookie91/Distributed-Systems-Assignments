@@ -2,34 +2,58 @@ package activitystreamer.message;
 
 import org.json.simple.JSONObject;
 
+import activitystreamer.server.Connection;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class Message
 {
-    JSONObject message;
-    private abstract static String[] keys;
+    Map<String,String> message;
+    
+    String COMMAND;
 
-    Message()
+    Message(String command)
     {
-        message = new JSONObject();
-        message.put("command", COMMAND);
+        message = new HashMap<String,String>();
+        message.put("command", command);
     }
 
-    Message(String stringMessage)
+    Message(Map<String, String> stringMessage)
     {
-        message = new JSONObject(stringMessage);
+    	message = stringMessage;
+    	
+
+    }
+    
+    public static Map<String, String> stringToMap(String message)
+    {
+    	Map<String,String> map = new HashMap<String,String>();
+    	String[] pairs = message.split(",");
+    	for (int i=0;i<pairs.length;i++) 
+    	{
+    	    String pair = pairs[i];
+    	    String[] keyValue = pair.split(":");
+    	    map.put(keyValue[0], keyValue[1]);
+    	}
+    	
+    	return map;
     }
 
-    public static String incomingMessageType(String stringMessage)
+    public static String incomingMessageType(Connection con, String stringMessage)
     {
-        JSONObject incomingMessage = new JSONObject(stringMessage);
+        Map<String,String> incomingMessage = new HashMap<String,String>();
+        InvalidMessage error;
+        incomingMessage = stringToMap(stringMessage);
         String messageType;
-        try
+        if(incomingMessage.containsKey("command"))
         {
             messageType = incomingMessage.get("command");
         }
-        catch(JSONException e)
+        else
         {
-            InvalidMessage error = new InvalidMessage("the received message did not contain a command");
-            error.send();
+            error = new InvalidMessage("the received message did not contain a command");
+            con.writeMsg(error.toString());
             return "";   
         }
         return messageType;
@@ -37,29 +61,24 @@ public abstract class Message
 
     public String messageToString()
     {
-        return message.toString();
+        return JSONObject.toJSONString(message);
     }
 
-    public boolean checkFields()
+    public boolean checkFields(Connection con)
     {
-        for(String key in keys)
+    	InvalidMessage error;
+        for(String key: getKeys())
         {
-            try
+            if(!message.containsKey(key))
             {
-                message.getString(key);
-            }
-            catch(JSONException e)
-            {
-                InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
-                error.sendMessage();
+                error = new InvalidMessage("the received message did not contain a" + key);
+            	con.writeMsg(error.toString());
                 return true;
             }
         }
         return false;
     }
-
-    public void sendMessage()
-    {
-
-    }
+    
+    public abstract String[] getKeys();
+    
 }

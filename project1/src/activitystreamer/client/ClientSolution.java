@@ -14,7 +14,6 @@ public class ClientSolution extends Thread {
 	private static ClientSolution clientSolution;
 	private TextFrame textFrame;
 	private ClientConnection connection;
-	private ClientMessage clientMessage = new ClientMessage();
 	
 	/*
 	 * additional variables

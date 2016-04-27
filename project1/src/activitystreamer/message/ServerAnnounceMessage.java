@@ -1,41 +1,48 @@
 package activitystreamer.message;
 
+import java.util.Map;
+
 public class ServerAnnounceMessage extends Message 
 {
     private static String COMMAND = "SERVER_ANNOUNCE";
-    private static String[] keys = ["command", "id", "load", "hostname", "port"];
+    private static String[] keys = {"command", "id", "load", "hostname", "port"};
 
-    Message(String id, int load, String hostname, int port)
+    public ServerAnnounceMessage(String id, int load, String hostname, int port)
     {
-        super();
+        super(COMMAND);
         message.put("id",id);
-        message.put("load",load);
+        message.put("load",Integer.toString(load));
         message.put("hostname",hostname);
-        message.put("port",port);
+        message.put("port",Integer.toString(port));
     }
 
-    Message(String stringMessage)
+    public ServerAnnounceMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
     }
 
     public String getID()
     {
-        return message.getString("id");
+        return message.get("id");
     }
 
     public int getLoad()
     {
-        return message.getInt("load");
+        return Integer.parseInt(message.get("load"));
     }
 
     public String getHostname()
     {
-        return message.getString("hostname");
+        return message.get("hostname");
     }
 
     public int getPort()
     {
-        return message.getInt("port");
+        return Integer.parseInt(message.get("port"));
     }
 }
