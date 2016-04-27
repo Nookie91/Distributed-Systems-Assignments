@@ -1,0 +1,27 @@
+package activitystreamer.message;
+
+import java.util.Map;
+
+public class LoginFailedLMessage extends Message 
+{
+    private static String COMMAND = "LOGIN_FAILED";
+    private static String[] keys = {"command", "info"};
+
+    LoginFailedMessage()
+    {
+        super(COMMAND);
+        message.put("info", "attempt to login with wrong secret")
+    }
+
+    LoginFailedMessage(Map<String,String> stringMessage)
+    {
+        super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
+    }
+
+
+}

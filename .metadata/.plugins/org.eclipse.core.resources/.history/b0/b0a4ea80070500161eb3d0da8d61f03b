@@ -1,0 +1,5 @@
+package activitystreamer.client;
+
+public class ClientConnection {
+
+}

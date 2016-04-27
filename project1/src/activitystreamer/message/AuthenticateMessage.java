@@ -10,7 +10,15 @@ public class AuthenticateMessage extends Message
     public AuthenticateMessage(String secret)
     {
         super(COMMAND);
-        message.put("secret",secret);
+        if(secret != null)
+        {
+            message.put("secret",secret);
+        }
+        else
+        {
+            message.put("secret","");
+        }
+        
     }
 
     public AuthenticateMessage(Map<String,String> stringMessage)

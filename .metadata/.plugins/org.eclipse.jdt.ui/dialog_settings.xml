@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="completion_proposal_size">
+	</section>
+	<section name="JavaElementSearchActions">
+	</section>
+	<section name="BuildPathsPropertyPage">
+		<item value="3" key="pageIndex"/>
+	</section>
+	<section name="JavaSearchPage">
+		<item value="false" key="CASE_SENSITIVE"/>
+		<item value="11" key="INCLUDE_MASK"/>
+		<item value="0" key="HISTORY_SIZE"/>
+	</section>
+	<section name="FatJarPackageWizard">
+		<item value="project1/runnables/server.jar" key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION"/>
+		<item value="ActivityStreamerServer - project1" key="FatJarPackageWizardPage.LAUNCH_CONFIGURATION_SELECTION_NAME"/>
+		<item value="/home/nooks/Documents/COMP90015" key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION"/>
+		<item value="false" key="FatJarPackageWizardPage.ANTSCRIPT_SAVE"/>
+		<item value="2" key="FatJarPackageWizardPage.LIBRARY_HANDLING"/>
+		<list key="FatJarPackageWizardPage.DESTINATION_NAMES_ID">
+			<item value="project1/runnables/server.jar"/>
+			<item value="project1/runnables/client.jar"/>
+		</list>
+		<list key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION_HISTORY">
+			<item value="/home/nooks/Documents/COMP90015.xml"/>
+			<item value=".xml"/>
+		</list>
+	</section>
+	<section name="quick_assist_proposal_size">
+	</section>
+</section>

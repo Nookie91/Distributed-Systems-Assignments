@@ -1,0 +1,25 @@
+package activitystreamer.message;
+
+public class InvalidMessage extends Message 
+{
+    private static String COMMAND = "INVALID_MESSAGE";
+    private static String[] keys = {"command", "info"};
+
+    InvalidMessage(String info, boolean notUsed)
+    {
+        super();
+        message.put("info",info);
+    }
+
+    InvalidMessage(String stringMessage)
+    {
+        super(stringMessage);
+    }
+
+    public String getInfo()
+    {
+        return message.get("info");
+    }
+
+
+}

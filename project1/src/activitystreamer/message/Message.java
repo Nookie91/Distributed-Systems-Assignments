@@ -53,7 +53,7 @@ public abstract class Message
         else
         {
             error = new InvalidMessage("the received message did not contain a command");
-            con.writeMsg(error.toString());
+            con.writeMsg(error.messageToString());
             return "";   
         }
         return messageType;
@@ -72,7 +72,7 @@ public abstract class Message
             if(!message.containsKey(key))
             {
                 error = new InvalidMessage("the received message did not contain a" + key);
-            	con.writeMsg(error.toString());
+            	con.writeMsg(error.messageToString());
                 return true;
             }
         }

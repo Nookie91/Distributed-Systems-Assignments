@@ -100,7 +100,7 @@ public class ControlSolution extends Control
 		 */
 		
 		message = new AuthenticateMessage(Settings.getSecret());
-		con.writeMsg(message.toString());
+		con.writeMsg(message.messageToString());
 		connectionType.put(con, ConnectionType.SERVER);
 		connectionStatus.put(con,"");
 		
@@ -142,14 +142,14 @@ public class ControlSolution extends Control
 		
 		ArrayList<Connection> sentLockRequests;
 		
-		
+		log.info("\n\n\n" + msg + "\n\n\n\n");
 		Map<String,String> mapMsg = Message.stringToMap(msg);
 
 		switch(Message.incomingMessageType(con,msg))
 		{
 			case "":
 				error = new InvalidMessage("the received message contained a blank command");
-                con.writeMsg(error.toString());
+                con.writeMsg(error.messageToString());
                 return true;
 
             case "AUTHENTICATE":
@@ -169,7 +169,7 @@ public class ControlSolution extends Control
             	else
             	{
             		error = new AuthenticateFailMessage("the supplied secret is incorrect:" + ((AuthenticateMessage) incomingMessage).getSecret());
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
 
@@ -189,13 +189,13 @@ public class ControlSolution extends Control
             		connectionType.put(con, ConnectionType.CLIENT);
             		incrementUsers();
 	            	reply = new LoginSuccessMessage(((LoginMessage) incomingMessage).getUsername());
-					con.writeMsg(reply.toString());
+					con.writeMsg(reply.messageToString());
 					return false;
             	}
             	else
             	{
             		reply = new LoginFailedMessage();
-					con.writeMsg(reply.toString());
+					con.writeMsg(reply.messageToString());
 					return true;
             	}
             	            	
@@ -206,7 +206,7 @@ public class ControlSolution extends Control
             	if(connectionStatus.get(con).equals(null))
             	{
             		error = new AuthenticateFailMessage("currently no user logged in");
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
 
@@ -235,7 +235,7 @@ public class ControlSolution extends Control
             		else
             		{
             			error = new AuthenticateFailMessage("username/secret do not match logged in user");
-		                con.writeMsg(error.toString());
+		                con.writeMsg(error.messageToString());
 		                return true;	
             		}
             	}
@@ -294,7 +294,7 @@ public class ControlSolution extends Control
             	else
             	{
             		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
             case "ACTIVITY_BROADCAST":
@@ -319,7 +319,7 @@ public class ControlSolution extends Control
             	else
             	{
             		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
 
@@ -332,13 +332,13 @@ public class ControlSolution extends Control
             	if(connectionStatus.get(con).equals(null))
             	{
             		error = new InvalidMessage("Cannot Register: Already logged in.");
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
             	else if(userDatabase.containsKey(((RegisterMessage) incomingMessage).getUsername()))
             	{
             		reply = new RegisterFailedMessage(((RegisterMessage) incomingMessage).getUsername());
-            		con.writeMsg(reply.toString());
+            		con.writeMsg(reply.messageToString());
             		return true;
             	}
             	else
@@ -373,7 +373,7 @@ public class ControlSolution extends Control
 	            		!userDatabase.get(((LockRequestMessage) incomingMessage).getUsername()).equals(((LockRequestMessage) incomingMessage).getSecret()))
 	            	{
 	            		reply = new LockDeniedMessage(((LockRequestMessage) incomingMessage).getUsername(),((LockRequestMessage) incomingMessage).getSecret());
-	            		con.writeMsg(reply.toString());
+	            		con.writeMsg(reply.messageToString());
 	            		return false;
 	            	}
 	            	else
@@ -396,7 +396,7 @@ public class ControlSolution extends Control
 														 ((LockRequestMessage) incomingMessage).getSecret(),
 	            									     serverID
 	            										);
-							con.writeMsg(reply.toString());
+							con.writeMsg(reply.messageToString());
 						}
 						else
 						{
@@ -409,7 +409,7 @@ public class ControlSolution extends Control
             	else
             	{
             		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
             	
@@ -444,7 +444,7 @@ public class ControlSolution extends Control
 						currentLockRequests.remove(((LockDeniedMessage) incomingMessage).getUsername());
 					}
 					if(returnLockRequests.containsKey(((LockDeniedMessage) incomingMessage).getUsername()))
-					{				
+					{				 
 						returnLockRequests.remove(((LockDeniedMessage) incomingMessage).getUsername());
 					}
 					if(currentRegisterRequests.containsKey(((LockDeniedMessage) incomingMessage).getUsername()))
@@ -459,7 +459,7 @@ public class ControlSolution extends Control
             	else
             	{
             		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
 
@@ -475,7 +475,7 @@ public class ControlSolution extends Control
             	else
             	{
             		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.toString());
+	                con.writeMsg(error.messageToString());
 	                return true;
             	}
 				

@@ -1,0 +1,72 @@
+package activitystreamer.message;
+
+import org.json.simple.JSONObject;
+
+import activitystreamer.server.Connection;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public abstract class Message
+{
+    Map<String,String> message;
+    
+    private static String[] keys;
+    String COMMAND;
+
+    Message(String command)
+    {
+        message = new HashMap<String,String>();
+        message.put("command", command);
+    }
+
+    Message(String stringMessage,boolean notUsed)
+    {
+    	message = new HashMap<String,String>();
+    	String[] pairs = stringMessage.split(",");
+    	for (int i=0;i<pairs.length;i++) 
+    	{
+    	    String pair = pairs[i];
+    	    String[] keyValue = pair.split(":");
+    	    message.put(keyValue[0], keyValue[1]);
+    	}
+
+    }
+
+//    public static String incomingMessageType(String stringMessage)
+//    {
+//        JSONObject incomingMessage = new JSONObject(stringMessage);
+//        String messageType;
+//        try
+//        {
+//            messageType = incomingMessage.getJsonString("command");
+//        }
+//        catch(JSONException e)
+//        {
+//            InvalidMessage error = new InvalidMessage("the received message did not contain a command");
+//            error.send();
+//            return "";   
+//        }
+//        return messageType;
+//    }
+
+    public String messageToString()
+    {
+        return JSONObject.toJSONString(message);
+    }
+
+    public boolean checkFields(Connection con)
+    {
+        for(String key: keys)
+        {
+            if(!message.containsKey(key))
+                InvalidMessage error = new InvalidMessage("the received message did not contain a" + key,true);
+            	con.writeMsg(error.toString());
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+}

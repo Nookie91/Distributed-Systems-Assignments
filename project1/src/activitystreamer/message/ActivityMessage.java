@@ -45,7 +45,7 @@ public class ActivityMessage extends Message
             	if(!message.containsKey(key))
             	{
             		InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
-                    con.writeMsg(error.toString());
+                    con.writeMsg(error.messageToString());
                     return true;            		
             	}
             }

@@ -1,0 +1,76 @@
+package activitystreamer.message;
+
+import java.util.Map;
+
+public class LoginMessage extends Message 
+{
+    private static String COMMAND = "AUTHENTICATE";
+    private static String[] keys = {"command", "username", "secret"};
+
+    LoginMessage(String username, String secret)
+    {
+        super(COMMAND);
+        message.put("username", username);
+        message.put("secret", secret);
+    }
+
+    LoginMessage(Map<String,String> stringMessage)
+    {
+        super(stringMessage);
+    }
+    
+    public String[] getKeys()
+    {
+    	return keys;
+    }
+
+    @override
+    public boolean checkFields(Connection con)
+    {
+        for(String key: keys)
+        {
+            try
+            {
+                if(key.equalTo("secret") == 0)
+                {
+                    if(message.getString("username").equalTo("anomynous") == 0)
+                    {
+                        continue;
+                    }
+                }
+            }
+            catch(JSONException e)
+            {
+                InvalidMessage error = new InvalidMessage("the received message did not contain a username");
+                con.writeMsg(error.toString());
+                return true;
+            }
+            
+            try
+            {
+                message.getString(key);
+            }
+            catch(JSONException e)
+            {
+                InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
+                con.writeMsg(error.toString());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String getUsername()
+    {
+        return message.get("username");
+    }
+
+    public String getSecret()
+    {
+        if(message.get("username").equalTo("anomynous") == 0)
+        {
+            return "";
+        }
+        return message.get("secret");
+    }
+}
