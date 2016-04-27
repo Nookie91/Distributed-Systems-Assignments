@@ -17,7 +17,6 @@ import activitystreamer.util.Settings;
 
 public class Connection extends Thread 
 {
-	public static enum ConnectionType {CLIENT,SERVER,UNDEFINED};
 
 	private static final Logger log = LogManager.getLogger();
 	private DataInputStream in;

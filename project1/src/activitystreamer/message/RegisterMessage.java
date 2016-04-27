@@ -9,7 +9,8 @@ public class RegisterMessage extends Message
 
     public RegisterMessage(String username, String secret)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("username",username);
         message.put("secret",secret);
     }

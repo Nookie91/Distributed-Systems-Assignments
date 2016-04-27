@@ -9,7 +9,8 @@ public class AuthenticateMessage extends Message
 
     public AuthenticateMessage(String secret)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         if(secret != null)
         {
             message.put("secret",secret);
@@ -38,7 +39,16 @@ public class AuthenticateMessage extends Message
 
     public boolean doesSecretMatch(String secret)
     {
-        if(secret.equals(message.get("secret")))
+    	if(secret == null &&
+    			message.get("secret").equals(""))
+    	{
+    		return true;
+    	}
+    	else if(secret == null)
+    	{
+    		return false;
+    	}
+    	else if(secret.equals(message.get("secret")))
         {
             return true;
         }

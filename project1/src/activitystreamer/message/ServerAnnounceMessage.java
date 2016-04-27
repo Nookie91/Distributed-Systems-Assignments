@@ -9,7 +9,8 @@ public class ServerAnnounceMessage extends Message
 
     public ServerAnnounceMessage(String id, int load, String hostname, int port)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("id",id);
         message.put("load",Integer.toString(load));
         message.put("hostname",hostname);

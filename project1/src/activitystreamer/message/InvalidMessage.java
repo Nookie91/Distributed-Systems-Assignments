@@ -9,7 +9,8 @@ public class InvalidMessage extends Message
 
     public InvalidMessage(String info)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("info",info);
     }
 

@@ -13,10 +13,9 @@ public abstract class Message
     
     String COMMAND;
 
-    Message(String command)
+    Message()
     {
         message = new HashMap<String,String>();
-        message.put("command", command);
     }
 
     Message(Map<String, String> stringMessage)
@@ -29,31 +28,50 @@ public abstract class Message
     public static Map<String, String> stringToMap(String message)
     {
     	Map<String,String> map = new HashMap<String,String>();
+    	StringBuilder msg = new StringBuilder(message);
+    	msg.deleteCharAt(msg.length() - 1);
+    	msg.deleteCharAt(0);
+    	message = msg.toString();
     	String[] pairs = message.split(",");
     	for (int i=0;i<pairs.length;i++) 
     	{
     	    String pair = pairs[i];
     	    String[] keyValue = pair.split(":");
-    	    map.put(keyValue[0], keyValue[1]);
+    	    System.out.println(keyValue[0] + "   " + keyValue[1]);
+    	    map.put(keyValue[0].replace("\"", ""), keyValue[1].replace("\"", ""));
     	}
     	
     	return map;
     }
 
-    public static String incomingMessageType(Connection con, String stringMessage)
+    public static String incomingMessageType(Connection con, Map<String,String> message)
     {
-        Map<String,String> incomingMessage = new HashMap<String,String>();
         InvalidMessage error;
-        incomingMessage = stringToMap(stringMessage);
+        
         String messageType;
-        if(incomingMessage.containsKey("command"))
+        if(message.containsKey("command"))
         {
-            messageType = incomingMessage.get("command");
+            messageType = message.get("command");
         }
         else
         {
-            error = new InvalidMessage("the received message did not contain a command");
+            error = new InvalidMessage("the received message did not contain a command!");
             con.writeMsg(error.messageToString());
+            return "";   
+        }
+        return messageType;
+    }
+
+    public static String incomingMessageType(Map<String,String> message)
+    {
+        
+        String messageType;
+        if(message.containsKey("command"))
+        {
+            messageType = message.get("command");
+        }
+        else
+        {
             return "";   
         }
         return messageType;
@@ -71,7 +89,7 @@ public abstract class Message
         {
             if(!message.containsKey(key))
             {
-                error = new InvalidMessage("the received message did not contain a" + key);
+                error = new InvalidMessage("the received message did not contain a " + key);
             	con.writeMsg(error.messageToString());
                 return true;
             }

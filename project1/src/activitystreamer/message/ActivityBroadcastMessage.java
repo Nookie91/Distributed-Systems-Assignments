@@ -10,7 +10,8 @@ public class ActivityBroadcastMessage extends Message
 
     public ActivityBroadcastMessage(String activity, String username)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("activity",activity);
         processActivity(username);
     }

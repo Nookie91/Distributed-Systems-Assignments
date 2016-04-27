@@ -7,10 +7,11 @@ public class RegisterSuccessMessage extends Message
     private static String COMMAND = "REGISTER_SUCCESS";
     private static String[] keys = {"command", "info"};
 
-    public RegisterSuccessMessage()
+    public RegisterSuccessMessage(String username)
     {
-        super(COMMAND);
-        message.put("info", "");
+        super();
+        message.put("command", COMMAND);
+        message.put("info", "register success for " + username);
     }
 
     public RegisterSuccessMessage(Map<String,String> stringMessage)

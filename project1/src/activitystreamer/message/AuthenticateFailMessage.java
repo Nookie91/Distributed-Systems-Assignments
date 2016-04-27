@@ -9,7 +9,8 @@ public class AuthenticateFailMessage extends Message
 
     public AuthenticateFailMessage(String secret)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("info", secret);
     }
 

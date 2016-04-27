@@ -9,7 +9,8 @@ public class LockAllowedMessage extends Message
 
     public LockAllowedMessage(String username, String secret, String server)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("username",username);
         message.put("secret",secret);
         message.put("server",server);

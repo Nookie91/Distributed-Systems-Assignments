@@ -11,7 +11,8 @@ public class ActivityMessage extends Message
 
     public ActivityMessage(String username, String secret, String activity)
     {
-        super(COMMAND);
+    	super();
+        message.put("command", COMMAND);
         message.put("username",username);
         message.put("secret",secret);
         message.put("activity",activity);
@@ -44,7 +45,7 @@ public class ActivityMessage extends Message
             {
             	if(!message.containsKey(key))
             	{
-            		InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
+            		InvalidMessage error = new InvalidMessage("the received message did not contain a " + key);
                     con.writeMsg(error.messageToString());
                     return true;            		
             	}

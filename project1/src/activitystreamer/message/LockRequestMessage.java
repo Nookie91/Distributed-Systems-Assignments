@@ -9,7 +9,8 @@ public class LockRequestMessage extends Message
 
     public LockRequestMessage(String username, String secret)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("username",username);
         message.put("secret",secret);
     }

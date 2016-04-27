@@ -9,7 +9,8 @@ public class LogoutMessage extends Message
 
     public LogoutMessage()
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
     }
 
     public LogoutMessage(Map<String,String> stringMessage)

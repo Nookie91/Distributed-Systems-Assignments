@@ -6,12 +6,13 @@ import activitystreamer.server.Connection;
 
 public class LoginMessage extends Message 
 {
-    private static String COMMAND = "AUTHENTICATE";
+    private static String COMMAND = "LOGIN";
     private static String[] keys = {"command", "username", "secret"};
 
     public LoginMessage(String username, String secret)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("username", username);
         message.put("secret", secret);
     }

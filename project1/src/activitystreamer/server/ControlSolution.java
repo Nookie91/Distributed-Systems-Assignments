@@ -142,10 +142,9 @@ public class ControlSolution extends Control
 		
 		ArrayList<Connection> sentLockRequests;
 		
-		log.info("\n\n\n" + msg + "\n\n\n\n");
+		log.info(msg);
 		Map<String,String> mapMsg = Message.stringToMap(msg);
-
-		switch(Message.incomingMessageType(con,msg))
+		switch(Message.incomingMessageType(con,mapMsg))
 		{
 			case "":
 				error = new InvalidMessage("the received message contained a blank command");
@@ -178,6 +177,15 @@ public class ControlSolution extends Control
 
             case "LOGIN":
             	incomingMessage = new LoginMessage(mapMsg);
+                for(AuthorisedServer server: servers)
+                {
+                    if(numberOfLoggedInUsers >= server.getLoad() + 2)
+                    {
+                        reply = new RedirectMessage(server.getHostname(),server.getPort());
+                        con.writeMsg(reply.messageToString());
+                        return true;
+                    }
+                }
             	if(incomingMessage.checkFields(con))
             	{
             		return true;
@@ -215,7 +223,7 @@ public class ControlSolution extends Control
             	{
             		return true;
             	}
-            	if(!((ActivityMessage) incomingMessage).getUsername().equals("anomynous"))
+            	if(!((ActivityMessage) incomingMessage).getUsername().equals("anonymous"))
             	{
             		if(((ActivityMessage) incomingMessage).getUsername().equals(connectionStatus.get(con)) &&
             			checkLogin(((ActivityMessage) incomingMessage).getUsername(),((ActivityMessage) incomingMessage).getSecret(),con))
@@ -227,7 +235,7 @@ public class ControlSolution extends Control
             			{
             				if(!connection.equals(con))
             				{
-            					connection.writeMsg(broadcast.toString());
+            					connection.writeMsg(broadcast.messageToString());
             				}
             			}
             			return false;
@@ -248,7 +256,7 @@ public class ControlSolution extends Control
         			{
         				if(!connection.equals(con))
         				{
-        					connection.writeMsg(broadcast.toString());
+        					connection.writeMsg(broadcast.messageToString());
         				}
         			}
         			return false;
@@ -286,7 +294,7 @@ public class ControlSolution extends Control
 						if(connectionType.get(connection) == ConnectionType.SERVER &&
 							!connection.equals(con))
 						{
-							connection.writeMsg(incomingMessage.toString());
+							connection.writeMsg(incomingMessage.messageToString());
 						}
 					}
 					return false;	
@@ -311,7 +319,7 @@ public class ControlSolution extends Control
 					{
 						if(!connection.equals(con))
 						{
-							connection.writeMsg(incomingMessage.toString());
+							connection.writeMsg(incomingMessage.messageToString());
 						}
 					}
 					return false;	
@@ -353,7 +361,7 @@ public class ControlSolution extends Control
 					{
 						if(connectionType.get(connection) == ConnectionType.SERVER)
 						{
-							connection.writeMsg(lockRequest.toString());
+							connection.writeMsg(lockRequest.messageToString());
 							sentLockRequests.add(connection);
 						}
 					}
@@ -386,7 +394,7 @@ public class ControlSolution extends Control
 							if(connectionType.get(connection) == ConnectionType.SERVER &&
 								!connection.equals(con))
 							{
-								connection.writeMsg(incomingMessage.toString());
+								connection.writeMsg(incomingMessage.messageToString());
 								sentLockRequests.add(connection);
 							}
 						}
@@ -435,7 +443,7 @@ public class ControlSolution extends Control
 						if(connectionType.get(connection) == ConnectionType.SERVER &&
 							!connection.equals(con))
 						{
-							connection.writeMsg(incomingMessage.toString());
+							connection.writeMsg(incomingMessage.messageToString());
 							sentLockRequests.add(connection);
 						}
 					}
@@ -450,7 +458,7 @@ public class ControlSolution extends Control
 					if(currentRegisterRequests.containsKey(((LockDeniedMessage) incomingMessage).getUsername()))
 					{
 						reply = new RegisterFailedMessage(((LockDeniedMessage) incomingMessage).getUsername());
-						currentRegisterRequests.get(((LockDeniedMessage) incomingMessage).getUsername()).writeMsg(reply.toString());
+						currentRegisterRequests.get(((LockDeniedMessage) incomingMessage).getUsername()).writeMsg(reply.messageToString());
 						currentRegisterRequests.get(((LockDeniedMessage) incomingMessage).getUsername()).closeCon();
 						currentRegisterRequests.remove(((LockDeniedMessage) incomingMessage).getUsername());
 					}
@@ -468,9 +476,31 @@ public class ControlSolution extends Control
             	   connectionStatus.get(con).equals(""))
             	{
             		incomingMessage = new LockAllowedMessage(mapMsg);
-            		returnLockRequests.put(((LockRequestMessage) incomingMessage).getUsername(),con);
-            		sentLockRequests = new ArrayList<Connection>();
-
+            		
+            		sentLockRequests = currentLockRequests.get(((LockAllowedMessage) incomingMessage).getUsername());
+            		sentLockRequests.remove(con);
+            		if(sentLockRequests.isEmpty())
+            		{
+            			currentLockRequests.remove(((LockAllowedMessage) incomingMessage).getUsername());
+            			if(currentRegisterRequests.containsKey(((LockAllowedMessage) incomingMessage).getUsername()))
+            			{
+            				reply = new RegisterSuccessMessage(((LockAllowedMessage) incomingMessage).getUsername());
+            				currentRegisterRequests.get(((LockAllowedMessage) incomingMessage).getUsername()).writeMsg(reply.messageToString());
+            				currentRegisterRequests.remove(((LockAllowedMessage) incomingMessage).getUsername());
+            			}
+            			else
+            			{
+	            			reply = new LockAllowedMessage(((LockAllowedMessage) incomingMessage).getUsername(),
+														   ((LockAllowedMessage) incomingMessage).getSecret(),
+														   serverID
+														  );
+	            			returnLockRequests.get(((LockAllowedMessage) incomingMessage).getUsername()).writeMsg(reply.messageToString());
+            			}
+            			returnLockRequests.remove(((LockAllowedMessage) incomingMessage).getUsername());
+            		}
+            		
+            		currentLockRequests.put(((LockAllowedMessage) incomingMessage).getUsername(), sentLockRequests);
+            		return false;
 				}
             	else
             	{
@@ -486,9 +516,17 @@ public class ControlSolution extends Control
 
 	private boolean checkLogin(String username, String secret,Connection con)
 	{
-		if(userDatabase.containsKey(username))
+		if(username.equals("anonymous")) 
 		{
-			if(secret.equals(userDatabase.get(username)))
+			return true;
+		}
+		else if(userDatabase.containsKey(username))
+		{
+			if(secret == null)
+			{
+				return false;
+			}
+			else if(secret.equals(userDatabase.get(username)))
 			{
 				return true;
 			}
@@ -496,10 +534,6 @@ public class ControlSolution extends Control
 			{
 				return false;
 			}	
-		}
-		else if(username.equals("anomynous")) 
-		{
-			return true;
 		}
 		else if(connectionStatus.get(con).equals(null))
 		{
@@ -555,7 +589,7 @@ public class ControlSolution extends Control
 		{
 			if(connectionType.get(con) == ConnectionType.SERVER)
 			{
-				con.writeMsg(message.toString());
+				con.writeMsg(message.messageToString());
 			}
 		}
 	}

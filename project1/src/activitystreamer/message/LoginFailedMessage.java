@@ -9,7 +9,8 @@ public class LoginFailedMessage extends Message
 
     public LoginFailedMessage()
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("info", "attempt to login with wrong secret");
     }
 
@@ -21,6 +22,11 @@ public class LoginFailedMessage extends Message
     public String[] getKeys()
     {
     	return keys;
+    }
+
+    public String getInfo()
+    {
+        return message.get("info");
     }
 
 

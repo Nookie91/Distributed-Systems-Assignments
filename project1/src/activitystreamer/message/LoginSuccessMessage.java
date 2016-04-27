@@ -9,7 +9,8 @@ public class LoginSuccessMessage extends Message
 
     public LoginSuccessMessage(String username)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("info", "logged in as user " + username);
     }
 

@@ -9,7 +9,8 @@ public class RedirectMessage extends Message
 
     public RedirectMessage(String hostname, int port)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("hostname", hostname);
         message.put("port",Integer.toString(port));
     }

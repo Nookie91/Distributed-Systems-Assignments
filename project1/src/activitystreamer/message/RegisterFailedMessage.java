@@ -9,7 +9,8 @@ public class RegisterFailedMessage extends Message
 
     public RegisterFailedMessage(String username)
     {
-        super(COMMAND);
+        super();
+        message.put("command", COMMAND);
         message.put("info", username + " is already registered with the system");
     }
 
