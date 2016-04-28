@@ -20,7 +20,6 @@ public class ClientSolution extends Thread {
 	private static final Logger log = LogManager.getLogger();
 	private static ClientSolution clientSolution;
 	private TextFrame textFrame;
-	private boolean loggedIn;
 	private boolean term;
     private DataInputStream in;
     private DataOutputStream out;
@@ -52,13 +51,22 @@ public class ClientSolution extends Thread {
 		// open the gui
 		log.debug("opening the gui");
 		textFrame = new TextFrame();
-		loggedIn = false;
 		term = false;
 		
         initiateConnection();
-		login();
+
+		if(Settings.getSecret() != null)
+        {
+        	login();
+        }
+        else
+        {
+        	Settings.setSecret(Settings.nextSecret());
+        	register();
+        }
+		
 		// start the client's thread
-		start();
+        start();
 	}
 	
 	// called by the gui when the user clicks "send"
@@ -66,7 +74,7 @@ public class ClientSolution extends Thread {
 	{
 		ActivityMessage message = new ActivityMessage(Settings.getUsername(),
 													  Settings.getSecret(),
-													  activityObj.toString()
+													  activityObj.toJSONString()
 													  );
 		writeMsg(message.messageToString());
 	}
@@ -78,6 +86,7 @@ public class ClientSolution extends Thread {
 		writeMsg(message.messageToString());
 		closeCon();
 		textFrame.setVisible(false);
+		textFrame.dispose();
 
 		
 		/*
@@ -97,8 +106,7 @@ public class ClientSolution extends Thread {
 		{
 			log.error("failed to make connection to "+Settings.getRemoteHostname()+":"+Settings.getRemotePort()+" :"+e);
 			System.exit(-1);
-		}
-		
+		}		
 	}
 	
 	public boolean writeMsg(String msg) 
@@ -134,7 +142,7 @@ public class ClientSolution extends Thread {
 	public boolean process(String msg)
 	{
 		Message incomingMessage;
-		Message error, reply, broadcast;
+		Message error;
 		
 		
 		log.info(msg);
@@ -147,14 +155,47 @@ public class ClientSolution extends Thread {
                 return true;
             case "LOGIN_FAILED":
             	incomingMessage = new LoginFailedMessage(mapMsg);
-            	
             	log.error(((LoginFailedMessage) incomingMessage).getInfo());
             	return true;
 
             case "LOGIN_SUCCEED":
             	log.debug("login successful");
-            	loggedIn = true;
             	return false;
+            	
+            case "REGISTER_FAILED":
+            	incomingMessage = new RegisterFailedMessage(mapMsg);
+            	log.error(((RegisterFailedMessage) incomingMessage).getInfo());
+            	return true;
+            	
+            case "REGISTER_SUCCESS":
+            	incomingMessage = new RegisterSuccessMessage(mapMsg);
+            	log.debug(((RegisterSuccessMessage) incomingMessage).getInfo());
+            	login();
+            	return false;
+            	
+            case "ACTIVITY_BROADCAST":
+            	incomingMessage = new ActivityBroadcastMessage(mapMsg);
+            	textFrame.setOutputText(((ActivityBroadcastMessage) incomingMessage).getActivityObject());
+            	return false;
+            	
+            case "INVALID_MESSAGE":
+            	incomingMessage = new InvalidMessage(mapMsg);
+            	log.error(((InvalidMessage) incomingMessage).getInfo());
+            	return true;
+            	
+            case "AUTHENTICATE_FAIL":
+            	incomingMessage = new AuthenticateFailMessage(mapMsg);
+            	log.error(((AuthenticateFailMessage) incomingMessage).getInfo());
+            	return true;
+
+            case "REDIRECT":
+            	incomingMessage = new RedirectMessage(mapMsg);
+            	log.debug("redirecting to " + ((RedirectMessage) incomingMessage).getHostname() +":"+ ((RedirectMessage) incomingMessage).getPort());
+            	Settings.setRemoteHostname(((RedirectMessage) incomingMessage).getHostname());
+            	Settings.setRemotePort(((RedirectMessage) incomingMessage).getPort());
+            	clientSolution = new ClientSolution();
+            	return true;
+
         }
 		return false;
 	}
@@ -198,12 +239,18 @@ public class ClientSolution extends Thread {
             disconnect();
         }
 		open = false;
-
+		textFrame.dispose();
 	}
 
 	private void login()
 	{
 		LoginMessage message = new LoginMessage(Settings.getUsername(),Settings.getSecret());
+		writeMsg(message.messageToString());
+	}
+	
+	private void register()
+	{
+		RegisterMessage message = new RegisterMessage(Settings.getUsername(),Settings.getSecret());
 		writeMsg(message.messageToString());
 	}
 

@@ -1,9 +1,10 @@
 package activitystreamer.message;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 public class ActivityBroadcastMessage extends Message 
 {
@@ -26,6 +27,21 @@ public class ActivityBroadcastMessage extends Message
     public String getActivity()
     {
         return message.get("activity");
+    }
+
+    public JSONObject getActivityObject()
+    {
+    	Map<String,String> activity = stringToMap(getActivity());
+    	JSONParser parser = new JSONParser();
+        
+        try 
+        {
+			return (JSONObject) parser.parse(JSONObject.toJSONString(activity));
+		} 
+        catch (ParseException e) 
+		{
+			return null;
+		}
     }
 
     private void processActivity(String username)

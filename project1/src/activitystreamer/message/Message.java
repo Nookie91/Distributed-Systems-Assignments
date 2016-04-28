@@ -33,22 +33,6 @@ public abstract class Message
     	msg.deleteCharAt(msg.length() - 1);
     	msg.deleteCharAt(0);
     	
-//        if(msg.indexOf("\"activity\":") != -1)
-//        {
-//            map.put("activity",msg.substring(msg.indexOf("{"),msg.lastIndexOf("}")+1).replace("\"", ""));
-//            msg.replace(msg.indexOf("\"activity\":"),msg.lastIndexOf("}")+2,"");
-//        }
-//    	message = msg.toString();
-
-
-//    	String[] pairs = message.split(",");
-//    	for (int i=0;i<pairs.length;i++) 
-//    	{
-//    	    String pair = pairs[i];
-//    	    String[] keyValue = pair.split(":");
-//    	    
-//    	    map.put(keyValue[0].replace("\"", ""), keyValue[1].replace("\"", ""));
-//    	}
     	while(msg.indexOf(":") != -1)
     	{
     		lastcomma = msg.indexOf(",");
@@ -74,10 +58,6 @@ public abstract class Message
                 msg.replace(0,msg.lastIndexOf("}")+2,"");
         		
         	}
-    	}
-    	for(String key:map.keySet())
-    	{
-    		System.out.println(key + "   " + map.get(key));
     	}
     	
     	return map;

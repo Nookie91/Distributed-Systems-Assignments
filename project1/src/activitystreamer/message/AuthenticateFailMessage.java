@@ -7,11 +7,11 @@ public class AuthenticateFailMessage extends Message
     private static String COMMAND = "AUTHENTICATE_FAIL";
     private static String[] keys = {"command", "info"};
 
-    public AuthenticateFailMessage(String secret)
+    public AuthenticateFailMessage(String info)
     {
         super();
         message.put("command", COMMAND);
-        message.put("info", secret);
+        message.put("info", info);
     }
 
     public AuthenticateFailMessage(Map<String,String> stringMessage)
@@ -24,5 +24,9 @@ public class AuthenticateFailMessage extends Message
     	return keys;
     }
 
+    public String getInfo()
+    {
+        return message.get("info");
+    }
 
 }

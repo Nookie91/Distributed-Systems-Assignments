@@ -211,7 +211,7 @@ public class ControlSolution extends Control
             	return true;
 
             case "ACTIVITY_MESSAGE":
-            	if(connectionStatus.get(con).equals(null))
+            	if(connectionStatus.get(con) == null)
             	{
             		error = new AuthenticateFailMessage("currently no user logged in");
 	                con.writeMsg(error.messageToString());
@@ -233,10 +233,7 @@ public class ControlSolution extends Control
 																 );
             			for(Connection connection:getConnections())
             			{
-            				if(!connection.equals(con))
-            				{
-            					connection.writeMsg(broadcast.messageToString());
-            				}
+            				connection.writeMsg(broadcast.messageToString());
             			}
             			return false;
             		}
@@ -334,7 +331,7 @@ public class ControlSolution extends Control
             	{
             		return true;
             	}
-            	if(connectionStatus.get(con).equals(null))
+            	if(connectionStatus.get(con) != null)
             	{
             		error = new InvalidMessage("Cannot Register: Already logged in.");
 	                con.writeMsg(error.messageToString());
@@ -353,7 +350,7 @@ public class ControlSolution extends Control
             																((RegisterMessage) incomingMessage).getSecret()
             																);
             		sentLockRequests = new ArrayList<Connection>();
-            		currentRegisterRequests.put(((RegisterMessage) incomingMessage).getUsername(),con);
+            		
             		for(Connection connection: getConnections())
 					{
 						if(connectionType.get(connection) == ConnectionType.SERVER)
@@ -362,7 +359,17 @@ public class ControlSolution extends Control
 							sentLockRequests.add(connection);
 						}
 					}
-            		currentLockRequests.put(((RegisterMessage) incomingMessage).getUsername(),sentLockRequests);
+            		if(sentLockRequests.isEmpty())
+            		{
+            			reply = new RegisterSuccessMessage(((RegisterMessage) incomingMessage).getUsername());
+            			con.writeMsg(reply.messageToString());
+            		}
+            		else
+            		{
+            			currentRegisterRequests.put(((RegisterMessage) incomingMessage).getUsername(),con);
+            			currentLockRequests.put(((RegisterMessage) incomingMessage).getUsername(),sentLockRequests);
+            		}
+            		
             		return false;
             	}
             case "LOCK_REQUEST":
@@ -374,8 +381,7 @@ public class ControlSolution extends Control
 	            	{
 	            		return true;
 	            	}
-	            	if(userDatabase.containsKey(((LockRequestMessage) incomingMessage).getUsername()) &&
-	            		!userDatabase.get(((LockRequestMessage) incomingMessage).getUsername()).equals(((LockRequestMessage) incomingMessage).getSecret()))
+	            	if(userDatabase.containsKey(((LockRequestMessage) incomingMessage).getUsername()))
 	            	{
 	            		reply = new LockDeniedMessage(((LockRequestMessage) incomingMessage).getUsername(),((LockRequestMessage) incomingMessage).getSecret());
 	            		con.writeMsg(reply.messageToString());

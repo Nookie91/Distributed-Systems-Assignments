@@ -24,5 +24,10 @@ public class RegisterFailedMessage extends Message
     	return keys;
     }
 
+    public String getInfo()
+    {
+        return message.get("info");
+    }
+
 
 }
