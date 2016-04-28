@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="Rename resource &apos;SkeletonActivityStreamer&apos; to &apos;project1&apos;" description="Rename resource &apos;SkeletonActivityStreamer&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/SkeletonActivityStreamer" name="project1" stamp="1460600385263" updateReferences="true"/>
-</session>

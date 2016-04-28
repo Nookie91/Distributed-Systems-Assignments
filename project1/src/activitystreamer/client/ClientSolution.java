@@ -76,7 +76,6 @@ public class ClientSolution extends Thread {
 													  Settings.getSecret(),
 													  activityObj.toJSONString()
 													  );
-		//log.info(message.messageToString());
 		writeMsg(message.messageToString());
 	}
 	
@@ -146,7 +145,6 @@ public class ClientSolution extends Thread {
 		Message error;
 		
 		
-		log.info(msg);
 		Map<String,String> mapMsg = Message.stringToMap(msg);
 		switch(Message.incomingMessageType(mapMsg))
 		{
