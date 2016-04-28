@@ -137,384 +137,54 @@ public class ControlSolution extends Control
 		 * return true/false as appropriate
 		 */
 
-		Message incomingMessage;
-		Message error, reply, broadcast;
-		
-		ArrayList<Connection> sentLockRequests;
+		InvalidMessage error;
 		
 		log.info(msg);
 		Map<String,String> mapMsg = Message.stringToMap(msg);
+
 		switch(Message.incomingMessageType(con,mapMsg))
 		{
 			case "":
 				error = new InvalidMessage("the received message contained a blank command");
                 con.writeMsg(error.messageToString());
+                log.error("the received message contained a blank command");
                 return true;
 
             case "AUTHENTICATE":
-            	incomingMessage = new AuthenticateMessage(mapMsg);
-            	if(incomingMessage.checkFields(con))
-            	{
-            		return true;
-            	}
-
-            	if(((AuthenticateMessage) incomingMessage).doesSecretMatch(Settings.getSecret()))
-            	{
-            		
-            		connectionType.put(con,ConnectionType.SERVER);
-            		connectionStatus.put(con,"");
-            		return false;
-            	}
-            	else
-            	{
-            		error = new AuthenticateFailMessage("the supplied secret is incorrect:" + ((AuthenticateMessage) incomingMessage).getSecret());
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
+            	return authenticate(con,mapMsg);
 
             case "AUTHENTICATION_FAIL":
             	return true;
 
             case "LOGIN":
-            	incomingMessage = new LoginMessage(mapMsg);
-                for(AuthorisedServer server: servers)
-                {
-                    if(numberOfLoggedInUsers >= server.getLoad() + 2)
-                    {
-                        reply = new RedirectMessage(server.getHostname(),server.getPort());
-                        con.writeMsg(reply.messageToString());
-                        return true;
-                    }
-                }
-            	if(incomingMessage.checkFields(con))
-            	{
-            		return true;
-            	}
-
-            	if(checkLogin(((LoginMessage) incomingMessage).getUsername(),((LoginMessage) incomingMessage).getSecret(),con))
-            	{
-            		connectionStatus.put(con,((LoginMessage) incomingMessage).getUsername());
-            		connectionType.put(con, ConnectionType.CLIENT);
-            		incrementUsers();
-	            	reply = new LoginSuccessMessage(((LoginMessage) incomingMessage).getUsername());
-					con.writeMsg(reply.messageToString());
-					return false;
-            	}
-            	else
-            	{
-            		reply = new LoginFailedMessage();
-					con.writeMsg(reply.messageToString());
-					return true;
-            	}
+            	return login(con,mapMsg);
             	            	
             case "LOGOUT":
             	return true;
 
             case "ACTIVITY_MESSAGE":
-            	if(connectionStatus.get(con) == null)
-            	{
-            		error = new AuthenticateFailMessage("currently no user logged in");
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
-
-            	incomingMessage = new ActivityMessage(mapMsg);
-            	if(incomingMessage.checkFields(con))
-            	{
-            		return true;
-            	}
-            	if(!((ActivityMessage) incomingMessage).getUsername().equals("anonymous"))
-            	{
-            		if(((ActivityMessage) incomingMessage).getUsername().equals(connectionStatus.get(con)) &&
-            			checkLogin(((ActivityMessage) incomingMessage).getUsername(),((ActivityMessage) incomingMessage).getSecret(),con))
-            		{
-            			broadcast = new ActivityBroadcastMessage(((ActivityMessage) incomingMessage).getActivity(),
-            													 ((ActivityMessage) incomingMessage).getUsername()
-																 );
-            			for(Connection connection:getConnections())
-            			{
-            				connection.writeMsg(broadcast.messageToString());
-            			}
-            			return false;
-            		}
-            		else
-            		{
-            			error = new AuthenticateFailMessage("username/secret do not match logged in user");
-		                con.writeMsg(error.messageToString());
-		                return true;	
-            		}
-            	}
-            	else
-            	{
-            		broadcast = new ActivityBroadcastMessage(((ActivityMessage) incomingMessage).getActivity(),
-            												 ((ActivityMessage) incomingMessage).getUsername()
-															 );
-        			for(Connection connection:getConnections())
-        			{
-        				connection.writeMsg(broadcast.messageToString());
-        			}
-        			return false;
-            	}
+            	return activityMessage(con,mapMsg);
 
             case "SERVER_ANNOUNCE":
-            	if(connectionType.get(con) == ConnectionType.SERVER &&
-            	   connectionStatus.get(con).equals(""))
-            	{
-            		boolean newServer = true;
-            		incomingMessage = new ServerAnnounceMessage(mapMsg);
-            		if(incomingMessage.checkFields(con))
-	            	{
-	            		return true;
-	            	}
-            		for(AuthorisedServer server:servers)
-            		{
-            			if(server.getID().equals(((ServerAnnounceMessage) incomingMessage).getID()))
-            			{
-            				server.updateLoad(((ServerAnnounceMessage) incomingMessage).getLoad());
-            				newServer = false;
-            				break;
-            			}
-            		}
-            		if(newServer == true)
-            		{
-            			servers.add(new AuthorisedServer(((ServerAnnounceMessage) incomingMessage).getID(),
-						            					 ((ServerAnnounceMessage) incomingMessage).getLoad(),
-						            					 ((ServerAnnounceMessage) incomingMessage).getHostname(),
-						            					 ((ServerAnnounceMessage) incomingMessage).getPort())
-            											);
-            		}
-            		for(Connection connection: getConnections())
-					{
-						if(connectionType.get(connection) == ConnectionType.SERVER &&
-							!connection.equals(con))
-						{
-							connection.writeMsg(incomingMessage.messageToString());
-						}
-					}
-					return false;	
-            	}
-            	else
-            	{
-            		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
-            case "ACTIVITY_BROADCAST":
-            	if(connectionType.get(con) == ConnectionType.SERVER && 
-            		connectionStatus.get(con).equals(""))
-            	{
-            		incomingMessage = new ActivityBroadcastMessage(mapMsg);
-            		if(incomingMessage.checkFields(con))
-	            	{
-	            		return true;
-	            	}
+            	return serverAnnounce(con,mapMsg);
 
-            		for(Connection connection: getConnections())
-					{
-						if(!connection.equals(con))
-						{
-							connection.writeMsg(incomingMessage.messageToString());
-						}
-					}
-					return false;	
-            	}
-            	else
-            	{
-            		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
+            case "ACTIVITY_BROADCAST":
+            	return activityBroadcast(con,mapMsg);
 
             case "REGISTER":
-            	incomingMessage = new RegisterMessage(mapMsg);
-            	if(incomingMessage.checkFields(con))
-            	{
-            		return true;
-            	}
-            	if(connectionStatus.get(con) != null)
-            	{
-            		error = new InvalidMessage("Cannot Register: Already logged in.");
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
-            	else if(userDatabase.containsKey(((RegisterMessage) incomingMessage).getUsername()))
-            	{
-            		reply = new RegisterFailedMessage(((RegisterMessage) incomingMessage).getUsername());
-            		con.writeMsg(reply.messageToString());
-            		return true;
-            	}
-            	else
-            	{
-            		userDatabase.put(((RegisterMessage) incomingMessage).getUsername(),((RegisterMessage) incomingMessage).getSecret());
-            		LockRequestMessage lockRequest = new LockRequestMessage(((RegisterMessage) incomingMessage).getUsername(),
-            																((RegisterMessage) incomingMessage).getSecret()
-            																);
-            		sentLockRequests = new ArrayList<Connection>();
-            		
-            		for(Connection connection: getConnections())
-					{
-						if(connectionType.get(connection) == ConnectionType.SERVER)
-						{
-							connection.writeMsg(lockRequest.messageToString());
-							sentLockRequests.add(connection);
-						}
-					}
-            		if(sentLockRequests.isEmpty())
-            		{
-            			reply = new RegisterSuccessMessage(((RegisterMessage) incomingMessage).getUsername());
-            			con.writeMsg(reply.messageToString());
-            		}
-            		else
-            		{
-            			currentRegisterRequests.put(((RegisterMessage) incomingMessage).getUsername(),con);
-            			currentLockRequests.put(((RegisterMessage) incomingMessage).getUsername(),sentLockRequests);
-            		}
-            		
-            		return false;
-            	}
+            	return register(con,mapMsg);
+
             case "LOCK_REQUEST":
-            	if(connectionType.get(con) == ConnectionType.SERVER &&
-            	   connectionStatus.get(con).equals(""))
-            	{
-	            	incomingMessage = new LockRequestMessage(mapMsg);
-	            	if(incomingMessage.checkFields(con))
-	            	{
-	            		return true;
-	            	}
-	            	if(userDatabase.containsKey(((LockRequestMessage) incomingMessage).getUsername()))
-	            	{
-	            		reply = new LockDeniedMessage(((LockRequestMessage) incomingMessage).getUsername(),((LockRequestMessage) incomingMessage).getSecret());
-	            		con.writeMsg(reply.messageToString());
-	            		return false;
-	            	}
-	            	else
-	            	{
-	            		userDatabase.put(((LockRequestMessage) incomingMessage).getUsername(),((LockRequestMessage) incomingMessage).getSecret());
-	            		returnLockRequests.put(((LockRequestMessage) incomingMessage).getUsername(),con);
-	            		sentLockRequests = new ArrayList<Connection>();
-	            		for(Connection connection: getConnections())
-						{
-							if(connectionType.get(connection) == ConnectionType.SERVER &&
-								!connection.equals(con))
-							{
-								connection.writeMsg(incomingMessage.messageToString());
-								sentLockRequests.add(connection);
-							}
-						}
-						if(sentLockRequests.isEmpty())
-						{
-							reply = new LockAllowedMessage(((LockRequestMessage) incomingMessage).getUsername(),
-														 ((LockRequestMessage) incomingMessage).getSecret(),
-	            									     serverID
-	            										);
-							con.writeMsg(reply.messageToString());
-						}
-						else
-						{
-							currentLockRequests.put(((LockRequestMessage) incomingMessage).getUsername(),sentLockRequests);
-						}
-						
-						return false;
-					}
-            	}
-            	else
-            	{
-            		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
+            	return lockRequest(con,mapMsg);
             	
             case "LOCK_DENIED":
-            	if(connectionType.get(con) == ConnectionType.SERVER &&
-            	   connectionStatus.get(con).equals(""))
-            	{
-	            	incomingMessage = new LockDeniedMessage(mapMsg);
-	            	sentLockRequests = new ArrayList<Connection>();
-
-	            	if(incomingMessage.checkFields(con))
-	            	{
-	            		return true;
-	            	}
-
-	            	if(userDatabase.containsKey(((LockDeniedMessage) incomingMessage).getUsername()) &&
-	            		userDatabase.get(((LockDeniedMessage) incomingMessage).getUsername()).equals(((LockDeniedMessage) incomingMessage).getSecret()))
-	            	{
-	            		userDatabase.remove(((LockDeniedMessage) incomingMessage).getUsername());
-	            	}
-	            	for(Connection connection: getConnections())
-					{
-						if(connectionType.get(connection) == ConnectionType.SERVER &&
-							!connection.equals(con))
-						{
-							connection.writeMsg(incomingMessage.messageToString());
-							sentLockRequests.add(connection);
-						}
-					}
-					if(currentLockRequests.containsKey(((LockDeniedMessage) incomingMessage).getUsername()))
-					{
-						currentLockRequests.remove(((LockDeniedMessage) incomingMessage).getUsername());
-					}
-					if(returnLockRequests.containsKey(((LockDeniedMessage) incomingMessage).getUsername()))
-					{				 
-						returnLockRequests.remove(((LockDeniedMessage) incomingMessage).getUsername());
-					}
-					if(currentRegisterRequests.containsKey(((LockDeniedMessage) incomingMessage).getUsername()))
-					{
-						reply = new RegisterFailedMessage(((LockDeniedMessage) incomingMessage).getUsername());
-						currentRegisterRequests.get(((LockDeniedMessage) incomingMessage).getUsername()).writeMsg(reply.messageToString());
-						currentRegisterRequests.get(((LockDeniedMessage) incomingMessage).getUsername()).closeCon();
-						currentRegisterRequests.remove(((LockDeniedMessage) incomingMessage).getUsername());
-					}
-					return false;
-				}
-            	else
-            	{
-            		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
+            	return lockDenied(con,mapMsg);
 
 			case "LOCK_ALLOWED":
-				if(connectionType.get(con) == ConnectionType.SERVER &&
-            	   connectionStatus.get(con).equals(""))
-            	{
-            		incomingMessage = new LockAllowedMessage(mapMsg);
-            		
-            		sentLockRequests = currentLockRequests.get(((LockAllowedMessage) incomingMessage).getUsername());
-            		sentLockRequests.remove(con);
-            		if(sentLockRequests.isEmpty())
-            		{
-            			currentLockRequests.remove(((LockAllowedMessage) incomingMessage).getUsername());
-            			if(currentRegisterRequests.containsKey(((LockAllowedMessage) incomingMessage).getUsername()))
-            			{
-            				reply = new RegisterSuccessMessage(((LockAllowedMessage) incomingMessage).getUsername());
-            				currentRegisterRequests.get(((LockAllowedMessage) incomingMessage).getUsername()).writeMsg(reply.messageToString());
-            				currentRegisterRequests.remove(((LockAllowedMessage) incomingMessage).getUsername());
-            			}
-            			else
-            			{
-	            			reply = new LockAllowedMessage(((LockAllowedMessage) incomingMessage).getUsername(),
-														   ((LockAllowedMessage) incomingMessage).getSecret(),
-														   serverID
-														  );
-	            			returnLockRequests.get(((LockAllowedMessage) incomingMessage).getUsername()).writeMsg(reply.messageToString());
-            			}
-            			returnLockRequests.remove(((LockAllowedMessage) incomingMessage).getUsername());
-            		}
-            		
-            		currentLockRequests.put(((LockAllowedMessage) incomingMessage).getUsername(), sentLockRequests);
-            		return false;
-				}
-            	else
-            	{
-            		error = new InvalidMessage("server is not authenticated");
-	                con.writeMsg(error.messageToString());
-	                return true;
-            	}
-				
-
+				return lockAllowed(con,mapMsg);
+			default:
+                return true;
 		}
-		return false;
 	}
 
 	private boolean checkLogin(String username, String secret,Connection con)
@@ -596,4 +266,446 @@ public class ControlSolution extends Control
 			}
 		}
 	}
+
+    private boolean serverAnnounce(Connection con, Map<String,String> mapMsg)
+    {
+        ServerAnnounceMessage msg = new ServerAnnounceMessage(mapMsg);;
+        InvalidMessage errorMsg;
+        if(connectionType.get(con) == ConnectionType.SERVER 
+           && connectionStatus.get(con).equals("")
+          )
+        {
+            boolean newServer = true;
+            
+            if(msg.checkFields(con))
+            {
+                return true;
+            }
+            for(AuthorisedServer server:servers)
+            {
+                if(server.getID().equals(msg.getID()))
+                {
+                    server.updateLoad(msg.getLoad());
+                    newServer = false;
+                    break;
+                }
+            }
+            if(newServer == true)
+            {
+                servers.add(new AuthorisedServer(msg.getID(), 
+                                                 msg.getLoad(),
+                                                 msg.getHostname(),
+                                                 msg.getPort()
+                                                )
+                            );
+            }
+            for(Connection connection: getConnections())
+            {
+                if(connectionType.get(connection) == ConnectionType.SERVER 
+                   && !connection.equals(con)
+                  )
+                {
+                    connection.writeMsg(msg.messageToString());
+                }
+            }
+            return false;   
+        }
+        else
+        {
+            errorMsg = new InvalidMessage("server is not authenticated");
+            con.writeMsg(errorMsg.messageToString());
+            log.error("Server :" + msg.getID() + " is ");
+            return true;
+        }
+    }
+
+    private boolean activityBroadcast(Connection con, Map<String,String> mapMsg)
+    {   
+        ActivityBroadcastMessage msg = new ActivityBroadcastMessage(mapMsg);
+        InvalidMessage errorMsg;
+        if(connectionType.get(con) == ConnectionType.SERVER  
+           && connectionStatus.get(con).equals("")
+          )
+        {
+            if(msg.checkFields(con))
+            {
+                return true;
+            }
+
+            for(Connection connection: getConnections())
+            {
+                if(!connection.equals(con))
+                {
+                    connection.writeMsg(msg.messageToString());
+                }
+            }
+            return false;   
+        }
+        else
+        {
+            errorMsg = new InvalidMessage("server is not authenticated");
+            con.writeMsg(errorMsg.messageToString());
+            return true;
+        }
+    }
+
+    private boolean authenticate(Connection con, Map<String,String> mapMsg)
+    {
+        AuthenticateMessage msg = new AuthenticateMessage(mapMsg);
+        AuthenticateFailMessage errorMsg;
+
+        if(msg.checkFields(con))
+        {
+            return true;
+        }
+
+        if(msg.doesSecretMatch(Settings.getSecret()))
+        {
+            connectionType.put(con,ConnectionType.SERVER);
+            connectionStatus.put(con,"");
+            return false;
+        }
+        else
+        {
+            errorMsg = new AuthenticateFailMessage("the server secret is incorrect: " 
+                                                + msg.getSecret()
+                                               );
+            con.writeMsg(errorMsg.messageToString());
+            log.debug("the server secret is incorrect: " + msg.getSecret());
+            return true;
+        }
+    }
+
+    private boolean login(Connection con, Map<String,String> mapMsg)
+    {
+        LoginMessage msg = new LoginMessage(mapMsg);
+        Message replyMsg;
+
+
+        for(AuthorisedServer server: servers)
+        {
+            if(numberOfLoggedInUsers >= server.getLoad() + 2)
+            {
+                replyMsg = new RedirectMessage(server.getHostname(),
+                                               server.getPort()
+                                              );
+                con.writeMsg(replyMsg.messageToString());
+                log.info("Redirecting to Hostname: " + server.getHostname() 
+                                         + " Port: " + server.getPort());
+                return true;
+            }
+        }
+
+        if(msg.checkFields(con))
+        {
+            return true;
+        }
+
+        if(checkLogin(msg.getUsername(),msg.getSecret(),con))
+        {
+            connectionStatus.put(con,msg.getUsername());
+            connectionType.put(con, ConnectionType.CLIENT);
+            incrementUsers();
+
+            replyMsg = new LoginSuccessMessage(msg.getUsername());
+            con.writeMsg(replyMsg.messageToString());
+            log.info("Login Success - Hostname: " + msg.getUsername());
+            return false;
+        }
+        else
+        {
+            replyMsg = new LoginFailedMessage();
+            con.writeMsg(replyMsg.messageToString());
+            log.info("Login Failed");
+            return true;
+        }    
+    }
+
+    private boolean activityMessage(Connection con, Map<String,String> mapMsg)
+    {
+        ActivityMessage msg = new ActivityMessage(mapMsg);
+        ActivityBroadcastMessage broadcast;
+        Message errorMsg;
+
+        if(connectionStatus.get(con) == null)
+        {
+            errorMsg = new AuthenticateFailMessage("currently no user logged in");
+            con.writeMsg(errorMsg.messageToString());
+            log.debug("Activity message requires logged in user");
+            return true;
+        }
+
+        if(msg.checkFields(con))
+        {
+            return true;
+        }
+
+        if(!msg.getUsername().equals("anonymous"))
+        {
+            if(msg.getUsername().equals(connectionStatus.get(con)) 
+               && checkLogin(msg.getUsername(),msg.getSecret(),con)
+              )
+            {
+                broadcast = new ActivityBroadcastMessage(msg.getActivity(),
+                                                         msg.getUsername()
+                                                        );
+                for(Connection connection:getConnections())
+                {
+                    connection.writeMsg(broadcast.messageToString());
+                    log.info("broadcasting activity object");
+                }
+                return false;
+            }
+            else
+            {
+                errorMsg = new AuthenticateFailMessage("username/secret do not match logged in user");
+                con.writeMsg(errorMsg.messageToString());
+                return true;    
+            }
+        }
+        else
+        {
+            broadcast = new ActivityBroadcastMessage(msg.getActivity(),
+                                                     msg.getUsername()
+                                                     );
+            for(Connection connection:getConnections())
+            {
+                connection.writeMsg(broadcast.messageToString());
+                log.info("broadcasting activity object");
+            }
+            return false;
+        }
+    }
+
+    private boolean register(Connection con, Map<String,String> mapMsg)
+    {    
+        RegisterMessage msg = new RegisterMessage(mapMsg);
+        LockRequestMessage lockRequest;
+        InvalidMessage errorMsg;
+        Message replyMsg;
+        ArrayList<Connection> sentLockRequests;
+
+        if(msg.checkFields(con))
+        {
+            return true;
+        }
+
+        if(connectionStatus.get(con) != null)
+        {
+            errorMsg = new InvalidMessage("Cannot Register: Already logged in.");
+            con.writeMsg(errorMsg.messageToString());
+            log.error("Cannot Register: Already logged in.");
+            return true;
+        }
+        else if(userDatabase.containsKey(msg.getUsername()))
+        {
+            replyMsg = new RegisterFailedMessage(msg.getUsername());
+            con.writeMsg(replyMsg.messageToString());
+            log.debug("register failed. username already registered");
+            return true;
+        }
+        else
+        {
+            userDatabase.put(msg.getUsername(),msg.getSecret());
+            lockRequest = new LockRequestMessage(msg.getUsername(),
+                                                 msg.getSecret()
+                                                );
+            sentLockRequests = new ArrayList<Connection>();
+            
+            for(Connection connection: getConnections())
+            {
+                if(connectionType.get(connection) == ConnectionType.SERVER)
+                {
+                    connection.writeMsg(lockRequest.messageToString());
+                    sentLockRequests.add(connection);
+                }
+            }
+
+            if(sentLockRequests.isEmpty())
+            {
+                replyMsg = new RegisterSuccessMessage(msg.getUsername());
+                con.writeMsg(replyMsg.messageToString());
+                log.debug("register success for: " + msg.getUsername());
+            }
+            else
+            {
+                currentRegisterRequests.put(msg.getUsername(),con);
+                currentLockRequests.put(msg.getUsername(),sentLockRequests);
+            }
+            
+            return false;
+        }
+    }
+
+    private boolean lockRequest(Connection con, Map<String,String> mapMsg)
+    {    
+        LockRequestMessage msg = new LockRequestMessage(mapMsg);
+        InvalidMessage errorMsg;
+        Message replyMsg;
+        ArrayList<Connection> sentLockRequests;
+
+        if(connectionType.get(con) == ConnectionType.SERVER 
+           && connectionStatus.get(con).equals("")
+          )
+        {
+            if(msg.checkFields(con))
+            {
+                return true;
+            }
+            if(userDatabase.containsKey(msg.getUsername()))
+            {
+                replyMsg = new LockDeniedMessage(msg.getUsername(),msg.getSecret());
+                con.writeMsg(replyMsg.messageToString());
+                log.debug("denying lock for: " + msg.getUsername() + " " + msg.getSecret());
+                return false;
+            }
+            else
+            {
+                userDatabase.put(msg.getUsername(),msg.getSecret());
+                returnLockRequests.put(msg.getUsername(),con);
+                sentLockRequests = new ArrayList<Connection>();
+                for(Connection connection: getConnections())
+                {
+                    if(connectionType.get(connection) == ConnectionType.SERVER 
+                       && !connection.equals(con)
+                      )
+                    {
+                        connection.writeMsg(msg.messageToString());
+                        sentLockRequests.add(connection);
+                    }
+                }
+
+                if(sentLockRequests.isEmpty())
+                {
+                    replyMsg = new LockAllowedMessage(msg.getUsername(),
+                                                   msg.getSecret(),
+                                                   serverID
+                                                  );
+                    con.writeMsg(replyMsg.messageToString());
+                }
+                else
+                {
+                    currentLockRequests.put(msg.getUsername(),sentLockRequests);
+                }
+                
+                return false;
+            }
+        }
+        else
+        {
+            errorMsg = new InvalidMessage("server is not authenticated");
+            con.writeMsg(errorMsg.messageToString());
+            return true;
+        }
+    }
+
+    private boolean lockDenied(Connection con, Map<String,String> mapMsg)
+    {    
+        LockDeniedMessage msg = new LockDeniedMessage(mapMsg);
+        InvalidMessage errorMsg;
+        Message replyMsg;
+        ArrayList<Connection> sentLockRequests;
+
+        if(connectionType.get(con) == ConnectionType.SERVER 
+           && connectionStatus.get(con).equals("")
+          )
+
+        {
+            sentLockRequests = new ArrayList<Connection>();
+
+            if(msg.checkFields(con))
+            {
+                return true;
+            }
+
+            if(userDatabase.containsKey(msg.getUsername()) 
+               && userDatabase.get(msg.getUsername()).equals(msg.getSecret())
+              )
+            {
+                userDatabase.remove(msg.getUsername());
+            }
+
+            for(Connection connection: getConnections())
+            {
+                if(connectionType.get(connection) == ConnectionType.SERVER
+                   && !connection.equals(con)
+                  )
+                {
+                    connection.writeMsg(msg.messageToString());
+                    sentLockRequests.add(connection);
+                }
+            }
+
+            if(currentLockRequests.containsKey(msg.getUsername()))
+            {
+                currentLockRequests.remove(msg.getUsername());
+            }
+
+            if(returnLockRequests.containsKey(msg.getUsername()))
+            {                
+                returnLockRequests.remove(msg.getUsername());
+            }
+
+            if(currentRegisterRequests.containsKey(msg.getUsername()))
+            {
+                replyMsg = new RegisterFailedMessage(msg.getUsername());
+                currentRegisterRequests.get(msg.getUsername()).writeMsg(replyMsg.messageToString());
+                currentRegisterRequests.get(msg.getUsername()).closeCon();
+                currentRegisterRequests.remove(msg.getUsername());
+            }
+
+            return false;
+        }
+        else
+        {
+            errorMsg = new InvalidMessage("server is not authenticated");
+            con.writeMsg(errorMsg.messageToString());
+            return true;
+        }
+    }
+
+    private boolean lockAllowed(Connection con, Map<String,String> mapMsg)
+    {    
+        LockAllowedMessage msg = new LockAllowedMessage(mapMsg);
+        InvalidMessage errorMsg;
+        Message replyMsg;
+        ArrayList<Connection> sentLockRequests;
+
+        if(connectionType.get(con) == ConnectionType.SERVER 
+           && connectionStatus.get(con).equals("")
+          )
+        {      
+            sentLockRequests = currentLockRequests.get(msg.getUsername());
+            sentLockRequests.remove(con);
+
+            if(sentLockRequests.isEmpty())
+            {
+                currentLockRequests.remove(msg.getUsername());
+                if(currentRegisterRequests.containsKey(msg.getUsername()))
+                {
+                    replyMsg = new RegisterSuccessMessage(msg.getUsername());
+                    currentRegisterRequests.get(msg.getUsername()).writeMsg(replyMsg.messageToString());
+                    currentRegisterRequests.remove(msg.getUsername());
+                }
+                else
+                {
+                    replyMsg = new LockAllowedMessage(msg.getUsername(),
+                                                      msg.getSecret(),
+                                                      serverID
+                                                     );
+                    returnLockRequests.get(msg.getUsername()).writeMsg(replyMsg.messageToString());
+                }
+                returnLockRequests.remove(msg.getUsername());
+            }
+            
+            currentLockRequests.put(msg.getUsername(), sentLockRequests);
+            return false;
+        }
+        else
+        {
+            errorMsg = new InvalidMessage("server is not authenticated");
+            con.writeMsg(errorMsg.messageToString());
+            return true;
+        }
+    }
 }

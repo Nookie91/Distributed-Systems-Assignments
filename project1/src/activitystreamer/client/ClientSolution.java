@@ -76,6 +76,7 @@ public class ClientSolution extends Thread {
 													  Settings.getSecret(),
 													  activityObj.toJSONString()
 													  );
+		log.info(message.messageToString());
 		writeMsg(message.messageToString());
 	}
 	

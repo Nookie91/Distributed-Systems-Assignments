@@ -29,7 +29,7 @@ public abstract class Message
     {
     	Map<String,String> map = new HashMap<String,String>();
     	int lastcomma;
-    	StringBuilder msg = new StringBuilder(message.replace("\"", "").replace("\\", ""));
+    	StringBuilder msg = new StringBuilder(message);
     	msg.deleteCharAt(msg.length() - 1);
     	msg.deleteCharAt(0);
     	
@@ -38,20 +38,20 @@ public abstract class Message
     		lastcomma = msg.indexOf(",");
     		if(lastcomma == -1)
     		{
-    			map.put(msg.substring(0,msg.indexOf(":")), 
-        				msg.substring(msg.indexOf(":") + 1));
+    			map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""), 
+        				msg.substring(msg.indexOf(":") + 1).replace("\"", "").replace("\\", ""));
         		msg.replace(0,msg.length(),"");
     		}
     		else if(msg.indexOf("{") == -1 || lastcomma < msg.indexOf("{"))
         	{
-        		map.put(msg.substring(0,msg.indexOf(":")), 
-        				msg.substring(msg.indexOf(":") + 1,lastcomma));
+        		map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""), 
+        				msg.substring(msg.indexOf(":") + 1,lastcomma).replace("\"", "").replace("\\", ""));
         		msg.replace(0,lastcomma+1,"");
         			
         	}
         	else
         	{
-        		map.put(msg.substring(0,msg.indexOf(":")),
+        		map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""),
         				msg.substring(msg.indexOf("{"),
         							  msg.lastIndexOf("}")+1
         							 ));
