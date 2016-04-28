@@ -7,7 +7,7 @@ import activitystreamer.server.Connection;
 public class ActivityMessage extends Message 
 {
     private static String COMMAND = "ACTIVITY_MESSAGE";
-    private static String[] keys = {"command", "username", "secret", "activty"};
+    private static String[] keys = {"command", "username", "secret", "activity"};
 
     public ActivityMessage(String username, String secret, String activity)
     {
@@ -70,6 +70,6 @@ public class ActivityMessage extends Message
 
     public String getActivity()
     {
-        return message.get("activty");
+        return message.get("activity");
     }
 }

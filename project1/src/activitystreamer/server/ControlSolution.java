@@ -254,10 +254,7 @@ public class ControlSolution extends Control
 															 );
         			for(Connection connection:getConnections())
         			{
-        				if(!connection.equals(con))
-        				{
-        					connection.writeMsg(broadcast.messageToString());
-        				}
+        				connection.writeMsg(broadcast.messageToString());
         			}
         			return false;
             	}

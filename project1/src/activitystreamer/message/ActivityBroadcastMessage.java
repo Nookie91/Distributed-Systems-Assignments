@@ -3,6 +3,8 @@ package activitystreamer.message;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.simple.JSONObject;
+
 public class ActivityBroadcastMessage extends Message 
 {
     private static String COMMAND = "ACTIVITY_BROADCAST";
@@ -28,17 +30,10 @@ public class ActivityBroadcastMessage extends Message
 
     private void processActivity(String username)
     {
-    	Map<String,String> activity = new HashMap<String,String>();
-    	String[] pairs = message.get("activity").split(",");
-    	for (int i=0;i<pairs.length;i++) 
-    	{
-    	    String pair = pairs[i];
-    	    String[] keyValue = pair.split(":");
-    	    activity.put(keyValue[0], keyValue[1]);
-    	}
+    	Map<String,String> activity = stringToMap(getActivity());
        
         activity.put("authenticated_user",username);
-        message.put("activity", activity.toString());
+        message.put("activity", JSONObject.toJSONString(activity));
     }
     
     public String[] getKeys()
