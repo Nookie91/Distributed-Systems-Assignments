@@ -22,6 +22,7 @@ public class ActivityBroadcastMessage extends Message
     public ActivityBroadcastMessage(Map<String,String> stringMessage)
     {
         super(stringMessage);
+        
     }
 
     public String getActivity()
@@ -33,10 +34,13 @@ public class ActivityBroadcastMessage extends Message
     {
     	Map<String,String> activity = stringToMap(getActivity());
     	JSONParser parser = new JSONParser();
-        
+    	String temp =  JSONObject.toJSONString(activity);
+    	temp = temp.replace("\"{", "{").replace("}\"", "}");
+    	temp = temp.replace("\\", "");
+
         try 
         {
-			return (JSONObject) parser.parse(JSONObject.toJSONString(activity));
+			return (JSONObject) parser.parse(temp);
 		} 
         catch (ParseException e) 
 		{
@@ -44,12 +48,23 @@ public class ActivityBroadcastMessage extends Message
 		}
     }
 
+    public String messageToString()
+    {
+    	String msg = JSONObject.toJSONString(message);
+    	msg = msg.replace("\"{", "{").replace("}\"", "}");
+    	msg = msg.replace("\\", "");
+        return msg;
+    }
+    
     private void processActivity(String username)
     {
     	Map<String,String> activity = stringToMap(getActivity());
-       
+    	String temp;
         activity.put("authenticated_user",username);
-        message.put("activity", JSONObject.toJSONString(activity));
+        temp = JSONObject.toJSONString(activity);
+        temp = temp.replace("\"{", "{").replace("}\"", "}");
+    	temp = temp.replace("\\", "");
+        message.put("activity", temp);
     }
     
     public String[] getKeys()

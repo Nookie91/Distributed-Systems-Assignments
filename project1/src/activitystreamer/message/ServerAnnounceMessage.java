@@ -1,6 +1,9 @@
 package activitystreamer.message;
 
 import java.util.Map;
+import java.util.HashMap;
+
+import org.json.simple.JSONObject;
 
 public class ServerAnnounceMessage extends Message 
 {
@@ -25,6 +28,23 @@ public class ServerAnnounceMessage extends Message
     public String[] getKeys()
     {
     	return keys;
+    }
+    
+    public String messageToString()
+    {
+    	Map<String,String> msg1 = new HashMap<String,String>();
+    	Map<String,Integer> msg2 = new HashMap<String,Integer>();
+    	
+    	msg1.put("command",message.get("command"));
+    	msg1.put("id",message.get("id"));
+    	msg1.put("hostname",message.get("hostname"));
+    	
+    	msg2.put("load",getLoad());
+    	msg2.put("port",getPort());
+    	
+    	String msg = JSONObject.toJSONString(msg1) + JSONObject.toJSONString(msg2);
+    	msg = msg.replace("}{", ",");
+        return msg;
     }
 
     public String getID()

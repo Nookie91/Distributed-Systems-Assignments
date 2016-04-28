@@ -2,6 +2,8 @@ package activitystreamer.message;
 
 import java.util.Map;
 
+import org.json.simple.JSONObject;
+
 import activitystreamer.server.Connection;
 
 public class ActivityMessage extends Message 
@@ -52,6 +54,14 @@ public class ActivityMessage extends Message
             }
         }
         return false;
+    }
+    
+    public String messageToString()
+    {
+    	String msg = JSONObject.toJSONString(message);
+    	msg = msg.replace("\"{", "{").replace("}\"", "}");
+    	msg = msg.replace("\\\"", "\"").replace("\"\\", "\"");
+        return msg;
     }
 
     public String getUsername()

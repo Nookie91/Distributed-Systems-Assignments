@@ -38,9 +38,19 @@ public abstract class Message
     		lastcomma = msg.indexOf(",");
     		if(lastcomma == -1)
     		{
-    			map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""), 
-        				msg.substring(msg.indexOf(":") + 1).replace("\"", "").replace("\\", ""));
-        		msg.replace(0,msg.length(),"");
+    			if(msg.indexOf("{") != -1)
+    			{
+    				map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""),
+            				msg.substring(msg.indexOf("{"),msg.lastIndexOf("}")+1));
+                    msg.replace(0,msg.lastIndexOf("}")+2,"");
+    			}
+    			else
+    			{
+    				map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""), 
+            				msg.substring(msg.indexOf(":") + 1).replace("\"", "").replace("\\", ""));
+            		msg.replace(0,msg.length(),"");
+    			}
+    			
     		}
     		else if(msg.indexOf("{") == -1 || lastcomma < msg.indexOf("{"))
         	{
@@ -52,9 +62,7 @@ public abstract class Message
         	else
         	{
         		map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""),
-        				msg.substring(msg.indexOf("{"),
-        							  msg.lastIndexOf("}")+1
-        							 ));
+        				msg.substring(msg.indexOf("{"),msg.lastIndexOf("}")+1));
                 msg.replace(0,msg.lastIndexOf("}")+2,"");
         		
         	}

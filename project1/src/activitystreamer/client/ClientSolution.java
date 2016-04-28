@@ -76,7 +76,7 @@ public class ClientSolution extends Thread {
 													  Settings.getSecret(),
 													  activityObj.toJSONString()
 													  );
-		log.info(message.messageToString());
+		//log.info(message.messageToString());
 		writeMsg(message.messageToString());
 	}
 	
@@ -159,7 +159,7 @@ public class ClientSolution extends Thread {
             	log.error(((LoginFailedMessage) incomingMessage).getInfo());
             	return true;
 
-            case "LOGIN_SUCCEED":
+            case "LOGIN_SUCCESS":
             	log.debug("login successful");
             	return false;
             	

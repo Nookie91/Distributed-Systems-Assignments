@@ -161,6 +161,9 @@ public class ControlSolution extends Control
             	            	
             case "LOGOUT":
             	return true;
+            	
+            case "INVALID_MESSAGE":
+            	return true;
 
             case "ACTIVITY_MESSAGE":
             	return activityMessage(con,mapMsg);
