@@ -47,9 +47,7 @@ public class ControlSolution extends Control
 	public ControlSolution() 
 	{
 		super();
-		/*
-		 * Do some further initialization here if necessary
-		 */
+
 		numberOfLoggedInUsers = 0;
 		userDatabase = new HashMap<String, String>();
 		servers = new ArrayList<AuthorisedServer>();
@@ -87,17 +85,14 @@ public class ControlSolution extends Control
 	}
 	
 	/*
-	 * a new outgoing connection
+	 * a new outgoing connection. connects to server passed in cmdline
 	 */
 	@Override
 	public Connection outgoingConnection(Socket s) throws IOException
 	{
 		Message message;
 		Connection con = super.outgoingConnection(s);
-		/*
-		 * do additional things here
-		 */
-		
+
 		message = new AuthenticateMessage(Settings.getSecret());
 		con.writeMsg(message.messageToString());
 		connectionType.put(con, ConnectionType.SERVER);
@@ -186,6 +181,7 @@ public class ControlSolution extends Control
 		}
 	}
 
+    // check credentials of client.
 	private boolean checkLogin(String username, String secret,Connection con)
 	{
 		if(username.equals("anonymous")) 
@@ -231,7 +227,6 @@ public class ControlSolution extends Control
 		return false;
 	}
 	
-
 	private void incrementUsers()
 	{
 		numberOfLoggedInUsers ++;
@@ -242,6 +237,8 @@ public class ControlSolution extends Control
 		numberOfLoggedInUsers --;
 	}
 
+
+    // broadcast server to other servers.
 	private void serverBroadcast()
 	{
 		ServerAnnounceMessage message = new ServerAnnounceMessage(serverID,
@@ -258,6 +255,8 @@ public class ControlSolution extends Control
 		}
 	}
 
+    // if server is authenticated, add/update its stored information and then
+    // boradcast to all other servers along the chain.
     private boolean serverAnnounce(Connection con, String mapMsg)
     {
         ServerAnnounceMessage msg = gson.fromJson(mapMsg,ServerAnnounceMessage.class);
@@ -310,6 +309,8 @@ public class ControlSolution extends Control
         }
     }
 
+    // if server is authenticated, broadcast activity to all other connections
+    // but the one who sent it.
     private boolean activityBroadcast(Connection con, String mapMsg)
     {   
         ActivityBroadcastMessage msg = gson.fromJson(mapMsg,ActivityBroadcastMessage.class);
@@ -340,6 +341,8 @@ public class ControlSolution extends Control
         }
     }
 
+    // if server passes the correct secret, add it to the list of authenticated
+    // servers. 
     private boolean authenticate(Connection con, String mapMsg)
     {
         AuthenticateMessage msg = gson.fromJson(mapMsg,AuthenticateMessage.class);
@@ -367,6 +370,9 @@ public class ControlSolution extends Control
         }
     }
 
+    // check the load on other servers, redirect the client if the laod
+    // difference is greater than 1. otherwise, check client credentials
+    // adding them to the list of logged in users if they are correct.
     private boolean login(Connection con, String mapMsg)
     {
         LoginMessage msg = gson.fromJson(mapMsg,LoginMessage.class);
@@ -412,6 +418,8 @@ public class ControlSolution extends Control
         }    
     }
 
+    // if the user is logged in, add the required field onto the JSONObject,
+    // then broadcast to all connections.
     private boolean activityMessage(Connection con, String mapMsg)
     {
         ActivityMessage msg = gson.fromJson(mapMsg,ActivityMessage.class);
@@ -468,6 +476,9 @@ public class ControlSolution extends Control
         }
     }
 
+    // check if client is already logged in or registered with server.
+    // otherwise send out a lock request to all other servers.
+    // if no other servers are connected, send a succeed.
     private boolean register(Connection con, String mapMsg)
     {    
         RegisterMessage msg = gson.fromJson(mapMsg,RegisterMessage.class);
@@ -528,6 +539,8 @@ public class ControlSolution extends Control
         }
     }
 
+    // check if lock should be denied by this server, otherwise send lock 
+    // requests to other servers. If no other servers send a lock accept.
     private boolean lockRequest(Connection con, String mapMsg)
     {    
         LockRequestMessage msg = gson.fromJson(mapMsg,LockRequestMessage.class);
@@ -590,6 +603,9 @@ public class ControlSolution extends Control
         }
     }
 
+    // remove username/secret pair if in database, send denied to all other
+    // connections. if its the server that sent the original lock request, send
+    // register denied to client.
     private boolean lockDenied(Connection con, String mapMsg)
     {    
         LockDeniedMessage msg = gson.fromJson(mapMsg,LockDeniedMessage.class);
@@ -651,6 +667,8 @@ public class ControlSolution extends Control
         }
     }
 
+    // send lock request up the line, if its the server that sent original 
+    // request, send register succeed.
     private boolean lockAllowed(Connection con, String mapMsg)
     {    
         LockAllowedMessage msg = gson.fromJson(mapMsg,LockAllowedMessage.class);

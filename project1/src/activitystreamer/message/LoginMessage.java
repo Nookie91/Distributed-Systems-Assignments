@@ -1,7 +1,5 @@
 package activitystreamer.message;
 
-import java.util.Map;
-
 import activitystreamer.server.Connection;
 
 public class LoginMessage extends Message 
@@ -32,7 +30,7 @@ public class LoginMessage extends Message
             con.writeMsg(error.messageToString());
             return true;
         }
-        if(getUsername().equals("anonymous"))
+        if(!getUsername().equals("anonymous"))
         {
             if(getSecret() == null)
             {

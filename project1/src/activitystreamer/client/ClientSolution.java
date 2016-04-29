@@ -61,7 +61,7 @@ public class ClientSolution extends Thread {
 
         // Login in if a secret was provided in arguments, otherwise 
         // register a new user.
-		if(Settings.getSecret() != null)
+		if(Settings.getSecret() != null || Settings.getUsername().equals("anonymous"))
 		{
 			login();
 		}
@@ -151,14 +151,13 @@ public class ClientSolution extends Thread {
 	{
 		Gson gson = new Gson();
 		Message incomingMessage;
-		incomingMessage = gson.fromJson(msg,Message.class);
-		
-		//log.info(incomingMessage.messageToString());
-		
-
 		Message error;
-		// convert the message into a map for reading
-		// determine command of msg and 
+		// get message object from JSONObject to determine command
+		incomingMessage = gson.fromJson(msg,Message.class);
+				
+
+		
+		// get command type and act accordingly.
 		switch(incomingMessage.getCommand())
 		{
 			case "":
@@ -278,12 +277,14 @@ public class ClientSolution extends Thread {
 		textFrame.dispose();
 	}
 
+	// log in to server with Settings
 	private void login()
 	{
 		LoginMessage message = new LoginMessage(Settings.getUsername(),Settings.getSecret());
 		writeMsg(message.messageToString());
 	}
 	
+	// register with server using Settings
 	private void register()
 	{
 		RegisterMessage message = new RegisterMessage(Settings.getUsername(),Settings.getSecret());
