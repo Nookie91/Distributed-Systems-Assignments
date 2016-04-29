@@ -1,33 +1,34 @@
 package activitystreamer.message;
 
-import java.util.Map;
+import activitystreamer.server.Connection;
 
 public class InvalidMessage extends Message 
 {
-    private static String COMMAND = "INVALID_MESSAGE";
-    private static String[] keys = {"command", "info"};
+    private final static String command = "INVALID_MESSAGE";
+    private String info;
 
     public InvalidMessage(String info)
     {
-        super();
-        message.put("command", COMMAND);
-        message.put("info",info);
-    }
-
-    public InvalidMessage(Map<String,String> stringMessage)
-    {
-        super(stringMessage);
+        super(command);
+        this.info = info;
     }
     
-    public String[] getKeys()
-    {
-    	return keys;
-    }
-
     public String getInfo()
     {
-        return message.get("info");
+        return info;
     }
 
+    public boolean checkFields(Connection con)
+    {
+        InvalidMessage error;
+        if(getInfo() == null)
+        {
+            error = new InvalidMessage("the received message did not contain any info");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+        
+        return false;
+    }
 
 }

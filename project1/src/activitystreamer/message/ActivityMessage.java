@@ -1,85 +1,67 @@
 package activitystreamer.message;
 
-import java.util.Map;
-
 import org.json.simple.JSONObject;
 
 import activitystreamer.server.Connection;
 
 public class ActivityMessage extends Message 
 {
-    private static String COMMAND = "ACTIVITY_MESSAGE";
-    private static String[] keys = {"command", "username", "secret", "activity"};
+    private final static String command = "ACTIVITY_MESSAGE";
+    private String username;
+    private String secret;
+    private JSONObject activity;
 
-    public ActivityMessage(String username, String secret, String activity)
+    public ActivityMessage(String username, String secret, JSONObject activity)
     {
-    	super();
-        message.put("command", COMMAND);
-        message.put("username",username);
-        message.put("secret",secret);
-        message.put("activity",activity);
-
-    }
-
-    public ActivityMessage(Map<String,String> stringMessage)
-    {
-        super(stringMessage);
+    	super(command);
+        this.username = username;
+        this.secret = secret;
+        this.activity = activity;
     }
     
-    public String[] getKeys()
-    {
-    	return keys;
-    }
 
-
-    @Override
     public boolean checkFields(Connection con)
     {
-        for(String key: keys)
+        InvalidMessage error;
+        if(getUsername() == null)
         {
-            if(key.equals("secret") &&
-            	message.containsKey("username")&&
-            	message.get("username").equals("anomynous"))
+            error = new InvalidMessage("the received message did not contain a username");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+        if(getUsername().equals("anonymous"))
+        {
+            if(getSecret() == null)
             {
-                    continue;
+                 error = new InvalidMessage("the received message did not contain a secret");
+                 con.writeMsg(error.messageToString());
+                 return true;
             }
-            else
-            {
-            	if(!message.containsKey(key))
-            	{
-            		InvalidMessage error = new InvalidMessage("the received message did not contain a " + key);
-                    con.writeMsg(error.messageToString());
-                    return true;            		
-            	}
-            }
+            
+        } 
+        if(getActivity() == null)
+        {
+            error = new InvalidMessage("the received message did not contain a JSON activity");
+            con.writeMsg(error.messageToString());
+            return true;
         }
         return false;
     }
     
-    public String messageToString()
-    {
-    	String msg = JSONObject.toJSONString(message);
-    	msg = msg.replace("\"{", "{").replace("}\"", "}");
-    	msg = msg.replace("\\\"", "\"").replace("\"\\", "\"");
-        return msg;
-    }
+
 
     public String getUsername()
     {
-        return message.get("username");
+        return username;
     }
 
     public String getSecret()
     {
-        if(message.get("username").equals("anomynous"))
-        {
-            return "";
-        }
-        return message.get("secret");
+        return secret;
     }
 
-    public String getActivity()
+    public JSONObject getActivity()
     {
-        return message.get("activity");
+        return activity;
     }
 }

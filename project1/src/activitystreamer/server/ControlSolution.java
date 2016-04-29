@@ -12,15 +12,13 @@ import activitystreamer.util.Settings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 
 
 public class ControlSolution extends Control 
 {
 	private static final Logger log = LogManager.getLogger();
-	
-	/*
-	 * additional variables as needed
-	 */
 	
 	public static enum ConnectionType {CLIENT,SERVER,UNDEFINED};
 	private static String serverID;	
@@ -34,6 +32,7 @@ public class ControlSolution extends Control
 	private static Map<String,ArrayList<Connection>> currentLockRequests;
 	private static Map<Connection,ConnectionType> connectionType;
 	private static Map<Connection, String> connectionStatus;
+	Gson gson;
 
 	// since control and its subclasses are singleton, we get the singleton this way
 	public static ControlSolution getInstance() 
@@ -60,7 +59,7 @@ public class ControlSolution extends Control
 		currentLockRequests = new HashMap<String,ArrayList<Connection>>();
 		connectionType = new HashMap<Connection,ConnectionType>();
 		connectionStatus = new HashMap<Connection,String>();
-		
+		gson = new Gson();
 		serverID = Settings.nextSecret();
 		
 		// check if we should initiate a connection and do so if necessary
@@ -131,27 +130,13 @@ public class ControlSolution extends Control
 	 */
 	@Override
 	public synchronized boolean process(Connection con,String msg)
-	{
-		/*
-		 * do additional work here
-		 * return true/false as appropriate
-		 */
-
+    {
 		InvalidMessage error;
-		Map<String,String> mapMsg;
-		log.info(msg);
-		try
-		{
-			mapMsg = Message.stringToMap(msg);
-		}
-		catch(StringIndexOutOfBoundsException e)
-		{
-			error = new InvalidMessage("Incorrectly formatted JSON object");
-			con.writeMsg(error.messageToString());
-			return true;
-		}
+		
+		Message message;
+		message = gson.fromJson(msg,Message.class);
 
-		switch(Message.incomingMessageType(con,mapMsg))
+		switch(message.getCommand())
 		{
 			case "":
 				error = new InvalidMessage("the received message contained a blank command");
@@ -160,13 +145,14 @@ public class ControlSolution extends Control
                 return true;
 
             case "AUTHENTICATE":
-            	return authenticate(con,mapMsg);
+            	return authenticate(con,msg);
 
             case "AUTHENTICATION_FAIL":
+            	log.debug("Incorrect server secret provided.");
             	return true;
 
             case "LOGIN":
-            	return login(con,mapMsg);
+            	return login(con,msg);
             	            	
             case "LOGOUT":
             	return true;
@@ -175,25 +161,26 @@ public class ControlSolution extends Control
             	return true;
 
             case "ACTIVITY_MESSAGE":
-            	return activityMessage(con,mapMsg);
+            	return activityMessage(con,msg);
 
             case "SERVER_ANNOUNCE":
-            	return serverAnnounce(con,mapMsg);
+            	return serverAnnounce(con,msg);
 
             case "ACTIVITY_BROADCAST":
-            	return activityBroadcast(con,mapMsg);
+            	return activityBroadcast(con,msg);
 
             case "REGISTER":
-            	return register(con,mapMsg);
+            	return register(con,msg);
 
             case "LOCK_REQUEST":
-            	return lockRequest(con,mapMsg);
+            	return lockRequest(con,msg);
             	
             case "LOCK_DENIED":
-            	return lockDenied(con,mapMsg);
+            	return lockDenied(con,msg);
 
 			case "LOCK_ALLOWED":
-				return lockAllowed(con,mapMsg);
+				return lockAllowed(con,msg);
+
 			default:
                 return true;
 		}
@@ -220,7 +207,7 @@ public class ControlSolution extends Control
 				return false;
 			}	
 		}
-		else if(connectionStatus.get(con).equals(null))
+		else if(connectionStatus.get(con) == null)
 		{
 			return false;
 		}
@@ -239,19 +226,11 @@ public class ControlSolution extends Control
 	@Override
 	public boolean doActivity()
 	{
-		/*
-		 * do additional work here
-		 * return true/false as appropriate
-		 */
-
 		serverBroadcast();
 		
 		return false;
 	}
 	
-		/*
-	 * Other methods as needed
-	 */
 
 	private void incrementUsers()
 	{
@@ -279,9 +258,9 @@ public class ControlSolution extends Control
 		}
 	}
 
-    private boolean serverAnnounce(Connection con, Map<String,String> mapMsg)
+    private boolean serverAnnounce(Connection con, String mapMsg)
     {
-        ServerAnnounceMessage msg = new ServerAnnounceMessage(mapMsg);;
+        ServerAnnounceMessage msg = gson.fromJson(mapMsg,ServerAnnounceMessage.class);
         InvalidMessage errorMsg;
         if(connectionType.get(con) == ConnectionType.SERVER 
            && connectionStatus.get(con).equals("")
@@ -331,9 +310,9 @@ public class ControlSolution extends Control
         }
     }
 
-    private boolean activityBroadcast(Connection con, Map<String,String> mapMsg)
+    private boolean activityBroadcast(Connection con, String mapMsg)
     {   
-        ActivityBroadcastMessage msg = new ActivityBroadcastMessage(mapMsg);
+        ActivityBroadcastMessage msg = gson.fromJson(mapMsg,ActivityBroadcastMessage.class);
         InvalidMessage errorMsg;
         if(connectionType.get(con) == ConnectionType.SERVER  
            && connectionStatus.get(con).equals("")
@@ -361,9 +340,9 @@ public class ControlSolution extends Control
         }
     }
 
-    private boolean authenticate(Connection con, Map<String,String> mapMsg)
+    private boolean authenticate(Connection con, String mapMsg)
     {
-        AuthenticateMessage msg = new AuthenticateMessage(mapMsg);
+        AuthenticateMessage msg = gson.fromJson(mapMsg,AuthenticateMessage.class);
         AuthenticateFailMessage errorMsg;
 
         if(msg.checkFields(con))
@@ -388,9 +367,9 @@ public class ControlSolution extends Control
         }
     }
 
-    private boolean login(Connection con, Map<String,String> mapMsg)
+    private boolean login(Connection con, String mapMsg)
     {
-        LoginMessage msg = new LoginMessage(mapMsg);
+        LoginMessage msg = gson.fromJson(mapMsg,LoginMessage.class);
         Message replyMsg;
 
 
@@ -433,9 +412,9 @@ public class ControlSolution extends Control
         }    
     }
 
-    private boolean activityMessage(Connection con, Map<String,String> mapMsg)
+    private boolean activityMessage(Connection con, String mapMsg)
     {
-        ActivityMessage msg = new ActivityMessage(mapMsg);
+        ActivityMessage msg = gson.fromJson(mapMsg,ActivityMessage.class);
         ActivityBroadcastMessage broadcast;
         Message errorMsg;
 
@@ -459,8 +438,7 @@ public class ControlSolution extends Control
               )
             {
                 broadcast = new ActivityBroadcastMessage(msg.getActivity(),
-                                                         msg.getUsername(),
-                                                         con
+                                                         msg.getUsername()
                                                         );
                 for(Connection connection:getConnections())
                 {
@@ -479,8 +457,7 @@ public class ControlSolution extends Control
         else
         {
             broadcast = new ActivityBroadcastMessage(msg.getActivity(),
-                                                     msg.getUsername(),
-                                                     con
+                                                     msg.getUsername()
                                                      );
             for(Connection connection:getConnections())
             {
@@ -491,9 +468,9 @@ public class ControlSolution extends Control
         }
     }
 
-    private boolean register(Connection con, Map<String,String> mapMsg)
+    private boolean register(Connection con, String mapMsg)
     {    
-        RegisterMessage msg = new RegisterMessage(mapMsg);
+        RegisterMessage msg = gson.fromJson(mapMsg,RegisterMessage.class);
         LockRequestMessage lockRequest;
         InvalidMessage errorMsg;
         Message replyMsg;
@@ -551,9 +528,9 @@ public class ControlSolution extends Control
         }
     }
 
-    private boolean lockRequest(Connection con, Map<String,String> mapMsg)
+    private boolean lockRequest(Connection con, String mapMsg)
     {    
-        LockRequestMessage msg = new LockRequestMessage(mapMsg);
+        LockRequestMessage msg = gson.fromJson(mapMsg,LockRequestMessage.class);
         InvalidMessage errorMsg;
         Message replyMsg;
         ArrayList<Connection> sentLockRequests;
@@ -613,20 +590,17 @@ public class ControlSolution extends Control
         }
     }
 
-    private boolean lockDenied(Connection con, Map<String,String> mapMsg)
+    private boolean lockDenied(Connection con, String mapMsg)
     {    
-        LockDeniedMessage msg = new LockDeniedMessage(mapMsg);
+        LockDeniedMessage msg = gson.fromJson(mapMsg,LockDeniedMessage.class);
         InvalidMessage errorMsg;
         Message replyMsg;
-        ArrayList<Connection> sentLockRequests;
-
+        log.debug("got lock denied from: " + con);
         if(connectionType.get(con) == ConnectionType.SERVER 
            && connectionStatus.get(con).equals("")
           )
 
         {
-            sentLockRequests = new ArrayList<Connection>();
-
             if(msg.checkFields(con))
             {
                 return true;
@@ -646,7 +620,6 @@ public class ControlSolution extends Control
                   )
                 {
                     connection.writeMsg(msg.messageToString());
-                    sentLockRequests.add(connection);
                 }
             }
 
@@ -678,9 +651,9 @@ public class ControlSolution extends Control
         }
     }
 
-    private boolean lockAllowed(Connection con, Map<String,String> mapMsg)
+    private boolean lockAllowed(Connection con, String mapMsg)
     {    
-        LockAllowedMessage msg = new LockAllowedMessage(mapMsg);
+        LockAllowedMessage msg = gson.fromJson(mapMsg,LockAllowedMessage.class);
         InvalidMessage errorMsg;
         Message replyMsg;
         ArrayList<Connection> sentLockRequests;

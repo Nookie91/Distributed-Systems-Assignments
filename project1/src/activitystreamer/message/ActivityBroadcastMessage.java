@@ -1,84 +1,51 @@
 package activitystreamer.message;
 
-import java.util.Map;
-
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import activitystreamer.server.Connection;
 
 public class ActivityBroadcastMessage extends Message 
 {
-    private static String COMMAND = "ACTIVITY_BROADCAST";
-    private static String[] keys = {"command", "activity"};
+    private final static String command = "ACTIVITY_BROADCAST";
+    private JSONObject activity;
+    private String username;
 
-    public ActivityBroadcastMessage(String activity, String username, Connection con)
+    public ActivityBroadcastMessage(JSONObject activity, String username)
     {
-    	super();
-    	try
-    	{
-	        message.put("command", COMMAND);
-	        message.put("activity",activity);
-	        processActivity(username);
-    	}
-    	catch(StringIndexOutOfBoundsException e)
-		{
-			InvalidMessage error = new InvalidMessage("Incorrectly formatted JSON activity object");
-			con.writeMsg(error.messageToString());
-		}
+
+    	super(command);
+        this.activity = activity;
+        this.username = username;
+        this.activity.put("authenticated_user",username);
     }
 
-    public ActivityBroadcastMessage(Map<String,String> stringMessage)
+    public JSONObject getActivity()
     {
-        super(stringMessage);
-        
+        return activity;
     }
 
-    public String getActivity()
+    public String getUsername()
     {
-        return message.get("activity");
+        return username;
     }
 
-    public JSONObject getActivityObject()
-    {
-    	Map<String,String> activity = stringToMap(getActivity());
-    	JSONParser parser = new JSONParser();
-    	String temp =  JSONObject.toJSONString(activity);
-    	temp = temp.replace("\"{", "{").replace("}\"", "}");
-    	temp = temp.replace("\\", "");
-
-        try 
+    public boolean checkFields(Connection con)
+     {
+        InvalidMessage error;
+        if(getUsername() == null)
         {
-			return (JSONObject) parser.parse(temp);
-		} 
-        catch (ParseException e) 
-		{
-			return null;
-		}
-    }
+            error = new InvalidMessage("the received message did not contain a username");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+        if(getActivity() == null)
+        {
+            error = new InvalidMessage("the received message did not contain an activity");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+        return false;
+     }
 
-    public String messageToString()
-    {
-    	String msg = JSONObject.toJSONString(message);
-    	msg = msg.replace("\"{", "{").replace("}\"", "}");
-    	msg = msg.replace("\\", "");
-        return msg;
-    }
-    
-    private void processActivity(String username)
-    {
-    	Map<String,String> activity = stringToMap(getActivity());
-    	String temp;
-        activity.put("authenticated_user",username);
-        temp = JSONObject.toJSONString(activity);
-        temp = temp.replace("\"{", "{").replace("}\"", "}");
-    	temp = temp.replace("\\", "");
-        message.put("activity", temp);
-    }
-    
-    public String[] getKeys()
-    {
-    	return keys;
-    }
+     
 }

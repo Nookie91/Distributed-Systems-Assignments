@@ -1,33 +1,34 @@
 package activitystreamer.message;
 
-import java.util.Map;
+import activitystreamer.server.Connection;
 
 public class LoginFailedMessage extends Message 
 {
-    private static String COMMAND = "LOGIN_FAILED";
-    private static String[] keys = {"command", "info"};
+    private final static String command = "LOGIN_FAILED";
+    private String info;
 
     public LoginFailedMessage()
     {
-        super();
-        message.put("command", COMMAND);
-        message.put("info", "attempt to login with wrong secret");
-    }
-
-    public LoginFailedMessage(Map<String,String> stringMessage)
-    {
-        super(stringMessage);
-    }
-    
-    public String[] getKeys()
-    {
-    	return keys;
+        super(command);
+        this.info = "attempt to login with wrong secret";
     }
 
     public String getInfo()
     {
-        return message.get("info");
+        return info;
     }
 
+    public boolean checkFields(Connection con)
+    {
+        InvalidMessage error;
+        if(getInfo() == null)
+        {
+            error = new InvalidMessage("the received message did not contain any info");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+
+        return false;
+    }
 
 }

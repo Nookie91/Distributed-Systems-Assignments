@@ -1,54 +1,35 @@
 package activitystreamer.message;
 
-import java.util.Map;
+import activitystreamer.server.Connection;
 
 public class AuthenticateMessage extends Message 
 {
-    private static String COMMAND = "AUTHENTICATE";
-    private static String[] keys = {"command", "secret"};
+    private final static String command = "AUTHENTICATE";
+    private String secret;
 
     public AuthenticateMessage(String secret)
     {
-        super();
-        message.put("command", COMMAND);
-        if(secret != null)
-        {
-            message.put("secret",secret);
-        }
-        else
-        {
-            message.put("secret","");
-        }
+        super(command);
+        this.secret = secret;
         
-    }
-
-    public AuthenticateMessage(Map<String,String> stringMessage)
-    {
-        super(stringMessage);
-    }
-    
-    public String[] getKeys()
-    {
-    	return keys;
     }
 
     public String getSecret()
     {
-        return message.get("secret");
+        return secret;
     }
 
     public boolean doesSecretMatch(String secret)
     {
-    	if(secret == null &&
-    			message.get("secret").equals(""))
+    	if(secret == null && this.secret == null)
     	{
     		return true;
     	}
-    	else if(secret == null)
+    	else if(secret == null || this.secret == null)
     	{
     		return false;
     	}
-    	else if(secret.equals(message.get("secret")))
+    	else if(secret.equals(this.secret))
         {
             return true;
         }
@@ -56,6 +37,11 @@ public class AuthenticateMessage extends Message
         {
             return false;
         }
+    }
+
+        public boolean checkFields(Connection con)
+    {
+        return false;
     }
 
 }

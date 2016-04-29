@@ -1,7 +1,5 @@
 package activitystreamer.server;
 
-
-
 public class AuthorisedServer
 {
     private String id;

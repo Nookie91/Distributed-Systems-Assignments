@@ -1,55 +1,45 @@
 package activitystreamer.message;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.json.simple.JSONObject;
+import activitystreamer.server.Connection;
 
 public class RedirectMessage extends Message 
 {
-    private static String COMMAND = "REDIRECT";
-    private static String[] keys = {"command", "hostname", "port"};
+    private final static String command = "REDIRECT";
+    private String hostname;
+    private Integer port;
 
-    public RedirectMessage(String hostname, int port)
+    public RedirectMessage(String hostname, Integer port)
     {
-        super();
-        message.put("command", COMMAND);
-        message.put("hostname", hostname);
-        message.put("port",Integer.toString(port));
-    }
-
-    public String messageToString()
-    {
-    	Map<String,String> msg1 = new HashMap<String,String>();
-    	Map<String,Integer> msg2 = new HashMap<String,Integer>();
-    	
-    	msg1.put("command",message.get("command"));;
-    	msg1.put("hostname",message.get("hostname"));
-    	
-    	msg2.put("port",getPort());
-    	
-    	String msg = JSONObject.toJSONString(msg1) + JSONObject.toJSONString(msg2);
-    	msg = msg.replace("}{", ",");
-        return msg;
+        super(command);
+        this.hostname = hostname;
+        this.port = port;
     }
     
-    public RedirectMessage(Map<String,String> stringMessage)
-    {
-        super(stringMessage);
-    }
-    
-    public String[] getKeys()
-    {
-    	return keys;
-    }
-
     public String getHostname()
     {
-        return message.get("hostname");
+        return hostname;
     }
 
-    public int getPort()
+    public Integer getPort()
     {
-        return Integer.parseInt(message.get("port"));
+        return port;
+    }
+
+    public boolean checkFields(Connection con)
+    {
+        InvalidMessage error;
+        if(getHostname() == null)
+        {
+            error = new InvalidMessage("the received message did not contain a hostname");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+        if(getPort() == null)
+        {
+            error = new InvalidMessage("the received message did not contain a port");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+        return false;
     }
 }

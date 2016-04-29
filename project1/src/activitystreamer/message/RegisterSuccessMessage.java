@@ -1,32 +1,35 @@
 package activitystreamer.message;
 
-import java.util.Map;
+import activitystreamer.server.Connection;
 
 public class RegisterSuccessMessage extends Message 
 {
-    private static String COMMAND = "REGISTER_SUCCESS";
-    private static String[] keys = {"command", "info"};
+    private final static String command = "REGISTER_SUCCESS";
+    private String info;
 
     public RegisterSuccessMessage(String username)
     {
-        super();
-        message.put("command", COMMAND);
-        message.put("info", "register success for " + username);
-    }
-
-    public RegisterSuccessMessage(Map<String,String> stringMessage)
-    {
-        super(stringMessage);
+        super(command);
+        this.info = "register success for " + username;
     }
     
-    public String[] getKeys()
-    {
-    	return keys;
-    }
+    
     public String getInfo()
     {
-        return message.get("info");
+        return info;
     }
 
+    public boolean checkFields(Connection con)
+    {
+        InvalidMessage error;
+        if(getInfo() == null)
+        {
+            error = new InvalidMessage("the received message did not contain any info");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+
+        return false;
+    }
 
 }

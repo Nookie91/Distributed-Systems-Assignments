@@ -6,61 +6,52 @@ import activitystreamer.server.Connection;
 
 public class LoginMessage extends Message 
 {
-    private static String COMMAND = "LOGIN";
-    private static String[] keys = {"command", "username", "secret"};
+    private final static String command = "LOGIN";
+    private String username;
+    private String secret;
 
     public LoginMessage(String username, String secret)
     {
-        super();
-        message.put("command", COMMAND);
-        message.put("username", username);
-        message.put("secret", secret);
+        super(command);
+        this.username = username;
+        this.secret = secret;
     }
-
-    public LoginMessage(Map<String,String> stringMessage)
+    public LoginMessage(String username)
     {
-        super(stringMessage);
-    }
-    
-    public String[] getKeys()
-    {
-    	return keys;
-    }
+        super(command);
+        this.username = username;
+        this.secret = null;
+    }    
 
     public boolean checkFields(Connection con)
     {
-        for(String key: keys)
+        InvalidMessage error;
+        if(getUsername() == null)
         {
-            if(key.equals("secret") &&
-            	message.containsKey("username")&&
-            	message.get("username").equals("anomynous"))
-            {
-                    continue;
-            }
-            else
-            {
-            	if(!message.containsKey(key))
-            	{
-            		InvalidMessage error = new InvalidMessage("the received message did not contain a" + key);
-                    con.writeMsg(error.messageToString());
-                    return true;            		
-            	}
-            }
+            error = new InvalidMessage("the received message did not contain a username");
+            con.writeMsg(error.messageToString());
+            return true;
         }
+        if(getUsername().equals("anonymous"))
+        {
+            if(getSecret() == null)
+            {
+            	 error = new InvalidMessage("the received message did not contain a secret");
+                 con.writeMsg(error.messageToString());
+                 return true;
+            }
+            
+        } 
         return false;
     }
 
     public String getUsername()
     {
-        return message.get("username");
-    }
+        return username;
+    }    
 
     public String getSecret()
     {
-        if(message.get("username").equals("anomynous"))
-        {
-            return "";
-        }
-        return message.get("secret");
+        return secret;
     }
 }

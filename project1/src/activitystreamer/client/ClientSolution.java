@@ -1,13 +1,14 @@
 package activitystreamer.client;
 
 import java.io.BufferedReader;
+
+import com.google.gson.Gson;  
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,23 +52,27 @@ public class ClientSolution extends Thread {
 		log.debug("opening the gui");
 		textFrame = new TextFrame();
 		term = false;
+		// Message msg;
+		
+		
+		
 		// Open the connection handled by the Settings.
         initiateConnection();
 
         // Login in if a secret was provided in arguments, otherwise 
         // register a new user.
 		if(Settings.getSecret() != null)
-        {
-        	login();
-        }
-        else
-        {
-        	Settings.setSecret(Settings.nextSecret());
-        	register();
-        }
+		{
+			login();
+		}
+		else
+		{
+			Settings.setSecret(Settings.nextSecret());
+			register();
+		}
 		
 		// start the client's thread for reading incoming messages.
-        start();
+       start();
 	}
 	
 	// called by the gui when the user clicks "send"
@@ -75,7 +80,7 @@ public class ClientSolution extends Thread {
 	{
 		ActivityMessage message = new ActivityMessage(Settings.getUsername(),
 													  Settings.getSecret(),
-													  activityObj.toJSONString()
+													  activityObj
 													  );
 		writeMsg(message.messageToString());
 	}
@@ -120,7 +125,7 @@ public class ClientSolution extends Thread {
         return false;
     }
     
-    // 
+    // Close the connection to the server.
     public void closeCon()
     {
         if(open)
@@ -141,65 +146,95 @@ public class ClientSolution extends Thread {
         }
     }
 
+    // Process an incoming message from the server.
 	public boolean process(String msg)
 	{
+		Gson gson = new Gson();
 		Message incomingMessage;
-		Message error;
+		incomingMessage = gson.fromJson(msg,Message.class);
 		
-		log.info(msg);
-		Map<String,String> mapMsg = Message.stringToMap(msg);
-		switch(Message.incomingMessageType(mapMsg))
+		//log.info(incomingMessage.messageToString());
+		
+
+		Message error;
+		// convert the message into a map for reading
+		// determine command of msg and 
+		switch(incomingMessage.getCommand())
 		{
 			case "":
 				error = new InvalidMessage("the received message contained a blank command");
-                writeMsg(error.messageToString());
-                return true;
-            case "LOGIN_FAILED":
-            	incomingMessage = new LoginFailedMessage(mapMsg);
-            	log.error(((LoginFailedMessage) incomingMessage).getInfo());
-            	return true;
+	            writeMsg(error.messageToString());
+	            return true;
+           case "LOGIN_FAILED":
+	           	incomingMessage = gson.fromJson(msg,LoginFailedMessage.class);
+	           	log.error(((LoginFailedMessage) incomingMessage).getInfo());
+	           	return true;
 
-            case "LOGIN_SUCCESS":
-            	log.debug("login successful");
-            	return false;
-            	
-            case "REGISTER_FAILED":
-            	incomingMessage = new RegisterFailedMessage(mapMsg);
-            	log.error(((RegisterFailedMessage) incomingMessage).getInfo());
-            	return true;
-            	
-            case "REGISTER_SUCCESS":
-            	incomingMessage = new RegisterSuccessMessage(mapMsg);
-            	log.debug(((RegisterSuccessMessage) incomingMessage).getInfo());
-            	login();
-            	return false;
-            	
-            case "ACTIVITY_BROADCAST":
-            	incomingMessage = new ActivityBroadcastMessage(mapMsg);
-            	textFrame.setOutputText(((ActivityBroadcastMessage) incomingMessage).getActivityObject());
-            	return false;
-            	
-            case "INVALID_MESSAGE":
-            	incomingMessage = new InvalidMessage(mapMsg);
-            	log.error(((InvalidMessage) incomingMessage).getInfo());
-            	return true;
-            	
-            case "AUTHENTICATE_FAIL":
-            	incomingMessage = new AuthenticateFailMessage(mapMsg);
-            	log.error(((AuthenticateFailMessage) incomingMessage).getInfo());
-            	return true;
+           case "LOGIN_SUCCESS":
+	           	log.debug("login successful");
+	           	return false;
+           	
+           case "REGISTER_FAILED":
+	           	incomingMessage = gson.fromJson(msg,RegisterFailedMessage.class);
+	           	log.error(((RegisterFailedMessage) incomingMessage).getInfo());
+	           	return true;
+           	
+           case "REGISTER_SUCCESS":
+	           	incomingMessage = gson.fromJson(msg,RegisterSuccessMessage.class);
+	           	log.debug(((RegisterSuccessMessage) incomingMessage).getInfo());
+	           	login();
+	           	return false;
+           	
+           case "ACTIVITY_BROADCAST":
+	           	incomingMessage = gson.fromJson(msg,ActivityBroadcastMessage.class);
+	           	if(((ActivityBroadcastMessage) incomingMessage).getActivity() == null)
+		        {
+		            error = new InvalidMessage("the received message did not contain a JSON activity");
+		            writeMsg(error.messageToString());
+		            return true;
+		        }
+	           	textFrame.setOutputText(((ActivityBroadcastMessage) incomingMessage).getActivity());
+	           	return false;
+           	
+           case "INVALID_MESSAGE":
+	           	incomingMessage = gson.fromJson(msg,InvalidMessage.class);
+	           	log.error(((InvalidMessage) incomingMessage).getInfo());
+	           	return true;
+           	
+           case "AUTHENTICATE_FAIL":
+	           	incomingMessage = gson.fromJson(msg,AuthenticateFailMessage.class);
+	           	log.error(((AuthenticateFailMessage) incomingMessage).getInfo());
+	           	return true;
 
-            case "REDIRECT":
-            	incomingMessage = new RedirectMessage(mapMsg);
-            	log.debug("redirecting to " + ((RedirectMessage) incomingMessage).getHostname() +":"+ ((RedirectMessage) incomingMessage).getPort());
-            	Settings.setRemoteHostname(((RedirectMessage) incomingMessage).getHostname());
-            	Settings.setRemotePort(((RedirectMessage) incomingMessage).getPort());
-            	clientSolution = new ClientSolution();
-            	return true;
+           case "REDIRECT":
+	           	incomingMessage = gson.fromJson(msg,RedirectMessage.class);
+	           	if(((RedirectMessage) incomingMessage).getHostname() == null)
+		        {
+		            error = new InvalidMessage("the received message did not contain a hostname");
+		            writeMsg(error.messageToString());
+		            return true;
+		        }
+		        if(((RedirectMessage) incomingMessage).getPort() == null)
+		        {
+		            error = new InvalidMessage("the received message did not contain a port");
+		            writeMsg(error.messageToString());
+		            return true;
+		        }
+	           	log.debug("redirecting to " + ((RedirectMessage) incomingMessage).getHostname() +":"+ ((RedirectMessage) incomingMessage).getPort());
+	           	Settings.setRemoteHostname(((RedirectMessage) incomingMessage).getHostname());
+	           	Settings.setRemotePort(((RedirectMessage) incomingMessage).getPort());
+	           	clientSolution = new ClientSolution();
+	           	return true;
+	        default:
+	        	log.error("unrecognised command");
+	        	error = new InvalidMessage("unrecognised command");
+	            writeMsg(error.messageToString());
+	        	return true;
 
         }
-		return false;
 	}
+
+
 	
 	/*
 	 * A new outgoing connection has been established, and a reference is returned to it

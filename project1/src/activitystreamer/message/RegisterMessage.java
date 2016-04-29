@@ -1,38 +1,48 @@
 package activitystreamer.message;
 
-import java.util.Map;
+import activitystreamer.server.Connection;
 
 public class RegisterMessage extends Message 
 {
-    private static String COMMAND = "REGISTER";
-    private static String[] keys = {"command", "username", "secret"};
+    private final static String command = "REGISTER";
+    private String username;
+    private String secret;
 
     public RegisterMessage(String username, String secret)
     {
-        super();
-        message.put("command", COMMAND);
-        message.put("username",username);
-        message.put("secret",secret);
-    }
-
-    public RegisterMessage(Map<String,String> stringMessage)
-    {
-        super(stringMessage);
-    }
-    
-    public String[] getKeys()
-    {
-    	return keys;
-    }
+        super(command);
+        this.username = username;
+        this.secret = secret;
+    }    
 
     public String getUsername()
     {
-        return message.get("username");
+        return username;
     }    
 
     public String getSecret()
     {
-        return message.get("secret");
+        return secret;
+    }
+
+    public boolean checkFields(Connection con)
+    {
+        InvalidMessage error;
+        if(getUsername() == null)
+        {
+            error = new InvalidMessage("the received message did not contain a username");
+            con.writeMsg(error.messageToString());
+            return true;
+        }
+
+        if(getSecret() == null)
+        {
+             error = new InvalidMessage("the received message did not contain a secret");
+             con.writeMsg(error.messageToString());
+             return true;
+        }
+
+        return false;
     }
 
 }
