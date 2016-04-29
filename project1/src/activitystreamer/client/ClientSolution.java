@@ -17,9 +17,14 @@ import activitystreamer.message.*;
 import activitystreamer.util.Settings;
 
 public class ClientSolution extends Thread {
+	
+	// Logging initialistion
 	private static final Logger log = LogManager.getLogger();
+	// To store the singleton object.
 	private static ClientSolution clientSolution;
+	// The GUI interface
 	private TextFrame textFrame;
+	// Variables used in the socket and connection to server.
 	private boolean term;
     private DataInputStream in;
     private DataOutputStream out;
@@ -28,9 +33,6 @@ public class ClientSolution extends Thread {
     private boolean open = false;
     private Socket socket;
 	
-	/*
-	 * additional variables
-	 */
 	
 	// this is a singleton object
 	public static ClientSolution getInstance()
@@ -42,19 +44,18 @@ public class ClientSolution extends Thread {
 		return clientSolution;
 	}
 	
+	// constructor for client.
 	public ClientSolution()
 	{
-		/*
-		 * some additional initialization
-		 */
-
 		// open the gui
 		log.debug("opening the gui");
 		textFrame = new TextFrame();
 		term = false;
-		
+		// Open the connection handled by the Settings.
         initiateConnection();
 
+        // Login in if a secret was provided in arguments, otherwise 
+        // register a new user.
 		if(Settings.getSecret() != null)
         {
         	login();
@@ -65,7 +66,7 @@ public class ClientSolution extends Thread {
         	register();
         }
 		
-		// start the client's thread
+		// start the client's thread for reading incoming messages.
         start();
 	}
 	
@@ -94,13 +95,12 @@ public class ClientSolution extends Thread {
 		 */
 	}
 	
+	// make a connection to a server stored in the Settings.
 	private void initiateConnection()
 	{
-		// make a connection to a server
 		try 
 		{
 			outgoingConnection(new Socket(Settings.getRemoteHostname(),Settings.getRemotePort()));
-			
 		} 
 		catch (IOException e) 
 		{
@@ -108,7 +108,8 @@ public class ClientSolution extends Thread {
 			System.exit(-1);
 		}		
 	}
-	
+
+	// write a message to the server
 	public boolean writeMsg(String msg) 
     {
         if(open){
@@ -119,6 +120,7 @@ public class ClientSolution extends Thread {
         return false;
     }
     
+    // 
     public void closeCon()
     {
         if(open)
@@ -144,7 +146,7 @@ public class ClientSolution extends Thread {
 		Message incomingMessage;
 		Message error;
 		
-		
+		log.info(msg);
 		Map<String,String> mapMsg = Message.stringToMap(msg);
 		switch(Message.incomingMessageType(mapMsg))
 		{
@@ -251,10 +253,5 @@ public class ClientSolution extends Thread {
 	{
 		RegisterMessage message = new RegisterMessage(Settings.getUsername(),Settings.getSecret());
 		writeMsg(message.messageToString());
-	}
-
-	/*
-	 * additional methods
-	 */
-	
+	}	
 }

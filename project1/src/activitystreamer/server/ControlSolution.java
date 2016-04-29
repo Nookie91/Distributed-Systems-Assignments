@@ -138,9 +138,18 @@ public class ControlSolution extends Control
 		 */
 
 		InvalidMessage error;
-		
+		Map<String,String> mapMsg;
 		log.info(msg);
-		Map<String,String> mapMsg = Message.stringToMap(msg);
+		try
+		{
+			mapMsg = Message.stringToMap(msg);
+		}
+		catch(StringIndexOutOfBoundsException e)
+		{
+			error = new InvalidMessage("Incorrectly formatted JSON object");
+			con.writeMsg(error.messageToString());
+			return true;
+		}
 
 		switch(Message.incomingMessageType(con,mapMsg))
 		{
@@ -450,7 +459,8 @@ public class ControlSolution extends Control
               )
             {
                 broadcast = new ActivityBroadcastMessage(msg.getActivity(),
-                                                         msg.getUsername()
+                                                         msg.getUsername(),
+                                                         con
                                                         );
                 for(Connection connection:getConnections())
                 {
@@ -469,7 +479,8 @@ public class ControlSolution extends Control
         else
         {
             broadcast = new ActivityBroadcastMessage(msg.getActivity(),
-                                                     msg.getUsername()
+                                                     msg.getUsername(),
+                                                     con
                                                      );
             for(Connection connection:getConnections())
             {

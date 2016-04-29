@@ -6,17 +6,27 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import activitystreamer.server.Connection;
+
 public class ActivityBroadcastMessage extends Message 
 {
     private static String COMMAND = "ACTIVITY_BROADCAST";
     private static String[] keys = {"command", "activity"};
 
-    public ActivityBroadcastMessage(String activity, String username)
+    public ActivityBroadcastMessage(String activity, String username, Connection con)
     {
-        super();
-        message.put("command", COMMAND);
-        message.put("activity",activity);
-        processActivity(username);
+    	super();
+    	try
+    	{
+	        message.put("command", COMMAND);
+	        message.put("activity",activity);
+	        processActivity(username);
+    	}
+    	catch(StringIndexOutOfBoundsException e)
+		{
+			InvalidMessage error = new InvalidMessage("Incorrectly formatted JSON activity object");
+			con.writeMsg(error.messageToString());
+		}
     }
 
     public ActivityBroadcastMessage(Map<String,String> stringMessage)

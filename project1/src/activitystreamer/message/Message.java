@@ -40,28 +40,28 @@ public abstract class Message
     		{
     			if(msg.indexOf("{") != -1)
     			{
-    				map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""),
+    				map.put(msg.substring(0,msg.indexOf(":")).replace("\"", ""),
             				msg.substring(msg.indexOf("{"),msg.lastIndexOf("}")+1));
                     msg.replace(0,msg.lastIndexOf("}")+2,"");
     			}
     			else
     			{
-    				map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""), 
-            				msg.substring(msg.indexOf(":") + 1).replace("\"", "").replace("\\", ""));
+    				map.put(msg.substring(0,msg.indexOf(":")).replace("\"", ""), 
+            				msg.substring(msg.indexOf(":") + 1).replace("\"", ""));
             		msg.replace(0,msg.length(),"");
     			}
     			
     		}
     		else if(msg.indexOf("{") == -1 || lastcomma < msg.indexOf("{"))
         	{
-        		map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""), 
-        				msg.substring(msg.indexOf(":") + 1,lastcomma).replace("\"", "").replace("\\", ""));
+        		map.put(msg.substring(0,msg.indexOf(":")).replace("\"", ""), 
+        				msg.substring(msg.indexOf(":") + 1,lastcomma).replace("\"", ""));
         		msg.replace(0,lastcomma+1,"");
         			
         	}
         	else
         	{
-        		map.put(msg.substring(0,msg.indexOf(":")).replace("\"", "").replace("\\", ""),
+        		map.put(msg.substring(0,msg.indexOf(":")).replace("\"", ""),
         				msg.substring(msg.indexOf("{"),msg.lastIndexOf("}")+1));
                 msg.replace(0,msg.lastIndexOf("}")+2,"");
         		
