@@ -1,5 +1,6 @@
 package activitystreamer.server;
 
+// Class used to store information on broadcasted servers.
 public class AuthorisedServer
 {
     private String id;
