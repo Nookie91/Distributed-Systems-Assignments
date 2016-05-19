@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.net.ssl.*;
+
 import activitystreamer.message.*;
 import activitystreamer.util.Settings;
 
@@ -16,12 +18,12 @@ import com.google.gson.Gson;
 
 
 
-public class ControlSolution extends Control 
+public class ControlSolution extends Control
 {
 	private static final Logger log = LogManager.getLogger();
-	
+
 	public static enum ConnectionType {CLIENT,SERVER,UNDEFINED};
-	private static String serverID;	
+	private static String serverID;
 
 	private static int numberOfLoggedInUsers;
 	private static Map<String, String> userDatabase;
@@ -33,20 +35,34 @@ public class ControlSolution extends Control
 	private static Map<Connection,ConnectionType> connectionType;
 	private static Map<Connection, String> connectionStatus;
 	Gson gson;
+	
+	
+
+    private static SSLListener sslListener;
 
 	// since control and its subclasses are singleton, we get the singleton this way
-	public static ControlSolution getInstance() 
+	public static ControlSolution getInstance()
 	{
 		if(control==null)
 		{
 			control=new ControlSolution();
-		} 
+		}
 		return (ControlSolution) control;
 	}
-	
-	public ControlSolution() 
+
+	public ControlSolution()
 	{
 		super();
+
+        try
+		{
+			sslListener = new SSLListener();
+		}
+		catch (IOException e1)
+		{
+			log.fatal("failed to startup a ssl listening thread: "+e1);
+			System.exit(-1);
+		}
 
 		numberOfLoggedInUsers = 0;
 		userDatabase = new HashMap<String, String>();
@@ -59,15 +75,15 @@ public class ControlSolution extends Control
 		connectionStatus = new HashMap<Connection,String>();
 		gson = new Gson();
 		serverID = Settings.nextSecret();
-		
+
 		// check if we should initiate a connection and do so if necessary
 		initiateConnection();
 		// start the server's activity loop
 		// it will call doActivity every few seconds
 		start();
 	}
-	
-	
+
+
 	/*
 	 * a new incoming connection
 	 */
@@ -78,12 +94,54 @@ public class ControlSolution extends Control
 		/*
 		 * do additional things here
 		 */
+		System.out.println();
 		System.out.println(s);
+		System.out.println();
 		connectionType.put(con, ConnectionType.UNDEFINED);
 		connectionStatus.put(con,null);
 		return con;
 	}
 	
+	@Override
+	public Connection incomingConnection(SSLSocket s) throws IOException
+	{
+		Connection con = super.incomingConnection(s);
+		/*
+		 * do additional things here
+		 */
+		System.out.println();
+		System.out.println(s);
+		System.out.println();
+		connectionType.put(con, ConnectionType.UNDEFINED);
+		connectionStatus.put(con,null);
+		return con;
+	}
+	
+	public void initiateConnection()
+	{
+		// make a connection to another server if remote hostname is supplied
+		if(Settings.getRemoteHostname()!=null)
+		{
+			try 
+			{
+				SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+				System.out.println("made it here");
+				SSLSocket sslSocket = (SSLSocket)factory.createSocket(Settings.getRemoteHostname(),Settings.getRemotePort());
+				String[] cipher = {"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA"};
+				sslSocket.setEnabledCipherSuites(cipher);//sslSocket.getEnabledCipherSuites());
+				
+				sslSocket.setUseClientMode(true);
+				
+				outgoingConnection(sslSocket);
+			} 
+			catch (IOException e) 
+			{
+				log.error("failed to make connection to "+Settings.getRemoteHostname()+":"+Settings.getRemotePort()+" :"+e);
+				System.exit(-1);
+			}
+		}
+	}
+
 	/*
 	 * a new outgoing connection. connects to server passed in cmdline
 	 */
@@ -97,11 +155,25 @@ public class ControlSolution extends Control
 		con.writeMsg(message.messageToString());
 		connectionType.put(con, ConnectionType.SERVER);
 		connectionStatus.put(con,"");
-		
+
 		return con;
 	}
 	
-	
+	@Override
+	public Connection outgoingConnection(SSLSocket s) throws IOException
+	{
+		Message message;
+		Connection con = super.outgoingConnection(s);
+
+		message = new AuthenticateMessage(Settings.getSecret());
+		con.writeMsg(message.messageToString());
+		connectionType.put(con, ConnectionType.SERVER);
+		connectionStatus.put(con,"");
+
+		return con;
+	}
+
+
 	/*
 	 * the connection has been closed
 	 */
@@ -117,8 +189,8 @@ public class ControlSolution extends Control
 		connectionStatus.remove(con);
         decrementUsers();
 	}
-	
-	
+
+
 	/*
 	 * process incoming msg, from connection con
 	 * return true if the connection should be closed, false otherwise
@@ -127,7 +199,7 @@ public class ControlSolution extends Control
 	public synchronized boolean process(Connection con,String msg)
     {
 		InvalidMessage error;
-		
+
 		Message message;
 		message = gson.fromJson(msg,Message.class);
 
@@ -148,10 +220,10 @@ public class ControlSolution extends Control
 
             case "LOGIN":
             	return login(con,msg);
-            	            	
+
             case "LOGOUT":
             	return true;
-            	
+
             case "INVALID_MESSAGE":
             	return true;
 
@@ -169,7 +241,7 @@ public class ControlSolution extends Control
 
             case "LOCK_REQUEST":
             	return lockRequest(con,msg);
-            	
+
             case "LOCK_DENIED":
             	return lockDenied(con,msg);
 
@@ -184,7 +256,7 @@ public class ControlSolution extends Control
     // check credentials of client.
 	private boolean checkLogin(String username, String secret,Connection con)
 	{
-		if(username.equals("anonymous")) 
+		if(username.equals("anonymous"))
 		{
 			return true;
 		}
@@ -201,7 +273,7 @@ public class ControlSolution extends Control
 			else
 			{
 				return false;
-			}	
+			}
 		}
 		else if(connectionStatus.get(con) == null)
 		{
@@ -209,12 +281,12 @@ public class ControlSolution extends Control
 		}
 		else
 		{
-			return true;	
+			return true;
 		}
 	}
 
-	
-	
+
+
 	/*
 	 * Called once every few seconds
 	 * Return true if server should shut down, false otherwise
@@ -223,10 +295,10 @@ public class ControlSolution extends Control
 	public boolean doActivity()
 	{
 		serverBroadcast();
-		
+
 		return false;
 	}
-	
+
 	private void incrementUsers()
 	{
 		numberOfLoggedInUsers ++;
@@ -243,7 +315,7 @@ public class ControlSolution extends Control
 	{
 		ServerAnnounceMessage message = new ServerAnnounceMessage(serverID,
 																  numberOfLoggedInUsers,
-																  Settings.getLocalHostname(), 
+																  Settings.getLocalHostname(),
 																  Settings.getLocalPort()
 																 );
 		for(Connection con: getConnections())
@@ -261,12 +333,12 @@ public class ControlSolution extends Control
     {
         ServerAnnounceMessage msg = gson.fromJson(mapMsg,ServerAnnounceMessage.class);
         InvalidMessage errorMsg;
-        if(connectionType.get(con) == ConnectionType.SERVER 
+        if(connectionType.get(con) == ConnectionType.SERVER
            && connectionStatus.get(con).equals("")
           )
         {
             boolean newServer = true;
-            
+
             if(msg.checkFields(con))
             {
                 return true;
@@ -282,7 +354,7 @@ public class ControlSolution extends Control
             }
             if(newServer == true)
             {
-                servers.add(new AuthorisedServer(msg.getID(), 
+                servers.add(new AuthorisedServer(msg.getID(),
                                                  msg.getLoad(),
                                                  msg.getHostname(),
                                                  msg.getPort()
@@ -291,14 +363,14 @@ public class ControlSolution extends Control
             }
             for(Connection connection: getConnections())
             {
-                if(connectionType.get(connection) == ConnectionType.SERVER 
+                if(connectionType.get(connection) == ConnectionType.SERVER
                    && !connection.equals(con)
                   )
                 {
                     connection.writeMsg(msg.messageToString());
                 }
             }
-            return false;   
+            return false;
         }
         else
         {
@@ -312,10 +384,10 @@ public class ControlSolution extends Control
     // if server is authenticated, broadcast activity to all other connections
     // but the one who sent it.
     private boolean activityBroadcast(Connection con, String mapMsg)
-    {   
+    {
         ActivityBroadcastMessage msg = gson.fromJson(mapMsg,ActivityBroadcastMessage.class);
         InvalidMessage errorMsg;
-        if(connectionType.get(con) == ConnectionType.SERVER  
+        if(connectionType.get(con) == ConnectionType.SERVER
            && connectionStatus.get(con).equals("")
           )
         {
@@ -331,7 +403,7 @@ public class ControlSolution extends Control
                     connection.writeMsg(msg.messageToString());
                 }
             }
-            return false;   
+            return false;
         }
         else
         {
@@ -342,7 +414,7 @@ public class ControlSolution extends Control
     }
 
     // if server passes the correct secret, add it to the list of authenticated
-    // servers. 
+    // servers.
     private boolean authenticate(Connection con, String mapMsg)
     {
         AuthenticateMessage msg = gson.fromJson(mapMsg,AuthenticateMessage.class);
@@ -361,7 +433,7 @@ public class ControlSolution extends Control
         }
         else
         {
-            errorMsg = new AuthenticateFailMessage("the server secret is incorrect: " 
+            errorMsg = new AuthenticateFailMessage("the server secret is incorrect: "
                                                 + msg.getSecret()
                                                );
             con.writeMsg(errorMsg.messageToString());
@@ -387,7 +459,7 @@ public class ControlSolution extends Control
                                                server.getPort()
                                               );
                 con.writeMsg(replyMsg.messageToString());
-                log.info("Redirecting to Hostname: " + server.getHostname() 
+                log.info("Redirecting to Hostname: " + server.getHostname()
                                          + " Port: " + server.getPort());
                 return true;
             }
@@ -415,7 +487,7 @@ public class ControlSolution extends Control
             con.writeMsg(replyMsg.messageToString());
             log.info("Login Failed");
             return true;
-        }    
+        }
     }
 
     // if the user is logged in, add the required field onto the JSONObject,
@@ -441,7 +513,7 @@ public class ControlSolution extends Control
 
         if(!msg.getUsername().equals("anonymous"))
         {
-            if(msg.getUsername().equals(connectionStatus.get(con)) 
+            if(msg.getUsername().equals(connectionStatus.get(con))
                && checkLogin(msg.getUsername(),msg.getSecret(),con)
               )
             {
@@ -459,7 +531,7 @@ public class ControlSolution extends Control
             {
                 errorMsg = new AuthenticateFailMessage("username/secret do not match logged in user");
                 con.writeMsg(errorMsg.messageToString());
-                return true;    
+                return true;
             }
         }
         else
@@ -480,7 +552,7 @@ public class ControlSolution extends Control
     // otherwise send out a lock request to all other servers.
     // if no other servers are connected, send a succeed.
     private boolean register(Connection con, String mapMsg)
-    {    
+    {
         RegisterMessage msg = gson.fromJson(mapMsg,RegisterMessage.class);
         LockRequestMessage lockRequest;
         InvalidMessage errorMsg;
@@ -513,7 +585,7 @@ public class ControlSolution extends Control
                                                  msg.getSecret()
                                                 );
             sentLockRequests = new ArrayList<Connection>();
-            
+
             for(Connection connection: getConnections())
             {
                 if(connectionType.get(connection) == ConnectionType.SERVER)
@@ -534,21 +606,21 @@ public class ControlSolution extends Control
                 currentRegisterRequests.put(msg.getUsername(),con);
                 currentLockRequests.put(msg.getUsername(),sentLockRequests);
             }
-            
+
             return false;
         }
     }
 
-    // check if lock should be denied by this server, otherwise send lock 
+    // check if lock should be denied by this server, otherwise send lock
     // requests to other servers. If no other servers send a lock accept.
     private boolean lockRequest(Connection con, String mapMsg)
-    {    
+    {
         LockRequestMessage msg = gson.fromJson(mapMsg,LockRequestMessage.class);
         InvalidMessage errorMsg;
         Message replyMsg;
         ArrayList<Connection> sentLockRequests;
 
-        if(connectionType.get(con) == ConnectionType.SERVER 
+        if(connectionType.get(con) == ConnectionType.SERVER
            && connectionStatus.get(con).equals("")
           )
         {
@@ -570,7 +642,7 @@ public class ControlSolution extends Control
                 sentLockRequests = new ArrayList<Connection>();
                 for(Connection connection: getConnections())
                 {
-                    if(connectionType.get(connection) == ConnectionType.SERVER 
+                    if(connectionType.get(connection) == ConnectionType.SERVER
                        && !connection.equals(con)
                       )
                     {
@@ -591,7 +663,7 @@ public class ControlSolution extends Control
                 {
                     currentLockRequests.put(msg.getUsername(),sentLockRequests);
                 }
-                
+
                 return false;
             }
         }
@@ -607,12 +679,12 @@ public class ControlSolution extends Control
     // connections. if its the server that sent the original lock request, send
     // register denied to client.
     private boolean lockDenied(Connection con, String mapMsg)
-    {    
+    {
         LockDeniedMessage msg = gson.fromJson(mapMsg,LockDeniedMessage.class);
         InvalidMessage errorMsg;
         Message replyMsg;
         log.debug("got lock denied from: " + con);
-        if(connectionType.get(con) == ConnectionType.SERVER 
+        if(connectionType.get(con) == ConnectionType.SERVER
            && connectionStatus.get(con).equals("")
           )
 
@@ -622,7 +694,7 @@ public class ControlSolution extends Control
                 return true;
             }
 
-            if(userDatabase.containsKey(msg.getUsername()) 
+            if(userDatabase.containsKey(msg.getUsername())
                && userDatabase.get(msg.getUsername()).equals(msg.getSecret())
               )
             {
@@ -645,7 +717,7 @@ public class ControlSolution extends Control
             }
 
             if(returnLockRequests.containsKey(msg.getUsername()))
-            {                
+            {
                 returnLockRequests.remove(msg.getUsername());
             }
 
@@ -667,19 +739,19 @@ public class ControlSolution extends Control
         }
     }
 
-    // send lock request up the line, if its the server that sent original 
+    // send lock request up the line, if its the server that sent original
     // request, send register succeed.
     private boolean lockAllowed(Connection con, String mapMsg)
-    {    
+    {
         LockAllowedMessage msg = gson.fromJson(mapMsg,LockAllowedMessage.class);
         InvalidMessage errorMsg;
         Message replyMsg;
         ArrayList<Connection> sentLockRequests;
 
-        if(connectionType.get(con) == ConnectionType.SERVER 
+        if(connectionType.get(con) == ConnectionType.SERVER
            && connectionStatus.get(con).equals("")
           )
-        {      
+        {
             sentLockRequests = currentLockRequests.get(msg.getUsername());
             sentLockRequests.remove(con);
 
@@ -702,7 +774,7 @@ public class ControlSolution extends Control
                 }
                 returnLockRequests.remove(msg.getUsername());
             }
-            
+
             currentLockRequests.put(msg.getUsername(), sentLockRequests);
             return false;
         }

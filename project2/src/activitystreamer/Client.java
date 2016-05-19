@@ -9,7 +9,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import activitystreamer.client.ClientSolution;
+import activitystreamer.client.ClientSSLSolution;
 import activitystreamer.util.Settings;
 
 public class Client {
@@ -87,7 +87,7 @@ public class Client {
 		 * maybe change the line below to suit your program
 		 */
 		
-		ClientSolution c = ClientSolution.getInstance(); 
+		ClientSSLSolution c = ClientSSLSolution.getInstance(); 
 				
 	}
 

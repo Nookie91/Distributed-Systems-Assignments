@@ -9,6 +9,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import javax.net.ssl.*;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -29,6 +31,18 @@ public class Connection extends Thread
 
 	
 	Connection(Socket socket) throws IOException
+	{
+		in = new DataInputStream(((SSLSocket)socket).getInputStream());
+	    out = new DataOutputStream(((SSLSocket)socket).getOutputStream());
+	    inreader = new BufferedReader( new InputStreamReader(in));
+	    outwriter = new PrintWriter(out, true);
+	    this.socket = (SSLSocket)socket;
+	    open = true;
+	    
+	    start();
+	}
+	
+	Connection(SSLSocket socket) throws IOException
 	{
 		in = new DataInputStream(socket.getInputStream());
 	    out = new DataOutputStream(socket.getOutputStream());

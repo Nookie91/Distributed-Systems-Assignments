@@ -35,6 +35,7 @@ public class Server {
 		
 		Options options = new Options();
 		options.addOption("lp",true,"local port number");
+		options.addOption("lsp",true,"local secure port number");
 		options.addOption("rp",true,"remote port number");
 		options.addOption("rh",true,"remote hostname");
 		options.addOption("lh",true,"local hostname");
@@ -69,6 +70,19 @@ public class Server {
 			}
 		}
 		
+		if(cmd.hasOption("lsp"))
+		{
+			try
+			{
+				int port = Integer.parseInt(cmd.getOptionValue("lsp"));
+				Settings.setLocalSecurePort(port);
+			} 
+			catch (NumberFormatException e)
+			{
+				log.info("-lsp requires a port number, parsed: "+cmd.getOptionValue("lsp"));
+				help(options);
+			}
+		}
 		if(cmd.hasOption("rh"))
 		{
 			Settings.setRemoteHostname(cmd.getOptionValue("rh"));

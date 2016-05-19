@@ -99,7 +99,7 @@ public class TextFrame extends JFrame implements ActionListener
 			try 
 			{
 				obj = (JSONObject) parser.parse(msg);
-				ClientSolution.getInstance().sendActivityObject(obj);
+				ClientSSLSolution.getInstance().sendActivityObject(obj);
 			} 
 			catch (ParseException e1) 
 			{
@@ -109,7 +109,7 @@ public class TextFrame extends JFrame implements ActionListener
 		} 
 		else if(e.getSource()==disconnectButton)
 		{
-			ClientSolution.getInstance().disconnect();
+			ClientSSLSolution.getInstance().disconnect();
 		}
 	}
 }

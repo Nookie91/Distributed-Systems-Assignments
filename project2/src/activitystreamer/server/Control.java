@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import javax.net.ssl.*;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -91,10 +93,27 @@ public class Control extends Thread
 		
 	}
 	
+	public synchronized Connection incomingConnection(SSLSocket s) throws IOException
+	{
+		log.debug("incomming connection: "+Settings.socketAddress(s));
+		Connection c = new Connection(s);
+		connections.add(c);
+		return c;
+		
+	}
+	
 	/*
 	 * A new outgoing connection has been established, and a reference is returned to it
 	 */
 	public synchronized Connection outgoingConnection(Socket s) throws IOException
+	{
+		log.debug("outgoing connection: "+Settings.socketAddress(s));
+		Connection c = new Connection(s);
+		connections.add(c);
+		return c;
+	}
+	
+	public synchronized Connection outgoingConnection(SSLSocket s) throws IOException
 	{
 		log.debug("outgoing connection: "+Settings.socketAddress(s));
 		Connection c = new Connection(s);
