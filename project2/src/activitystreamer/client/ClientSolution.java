@@ -2,13 +2,15 @@ package activitystreamer.client;
 
 import java.io.BufferedReader;
 
-import com.google.gson.Gson;  
+import com.google.gson.Gson;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+
+import javax.net.ssl.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,7 +20,7 @@ import activitystreamer.message.*;
 import activitystreamer.util.Settings;
 
 public class ClientSolution extends Thread {
-	
+
 	// Logging initialistion
 	private static final Logger log = LogManager.getLogger();
 	// To store the singleton object.
@@ -33,8 +35,10 @@ public class ClientSolution extends Thread {
     private PrintWriter outwriter;
     private boolean open = false;
     private Socket socket;
-	
-	
+    SSLSocketFactory factory;
+    private SSLSocket sslSocket;
+
+
 	// this is a singleton object
 	public static ClientSolution getInstance()
 	{
@@ -44,7 +48,7 @@ public class ClientSolution extends Thread {
 		}
 		return clientSolution;
 	}
-	
+
 	// constructor for client.
 	public ClientSolution()
 	{
@@ -52,14 +56,11 @@ public class ClientSolution extends Thread {
 		log.debug("opening the gui");
 		textFrame = new TextFrame();
 		term = false;
-		// Message msg;
-		
-		
-		
-		// Open the connection handled by the Settings.
-        initiateConnection();
 
-        // Login in if a secret was provided in arguments, otherwise 
+		// Open the connection handled by the Settings.
+        initiateBaseConnection();
+
+        // Login in if a secret was provided in arguments, otherwise
         // register a new user.
 		if(Settings.getSecret() != null || Settings.getUsername().equals("anonymous"))
 		{
@@ -70,11 +71,43 @@ public class ClientSolution extends Thread {
 			Settings.setSecret(Settings.nextSecret());
 			register();
 		}
-		
+
 		// start the client's thread for reading incoming messages.
        start();
 	}
-	
+
+    public ClientSolution(Boolean ssl)
+	{
+		// open the gui
+		log.debug("opening the gui");
+		textFrame = new TextFrame();
+		term = false;
+
+		factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+		// Open the connection handled by the Settings.
+        initiateBaseConnection();
+
+        // Login in if a secret was provided in arguments, otherwise
+        // register a new user.
+		login_register();
+
+		// start the client's thread for reading incoming messages.
+       start();
+	}
+
+    private void login_register()
+    {
+        if(Settings.getSecret() != null || Settings.getUsername().equals("anonymous"))
+        {
+            login();
+        }
+        else
+        {
+            Settings.setSecret(Settings.nextSecret());
+            register();
+        }
+    }
+
 	// called by the gui when the user clicks "send"
 	public void sendActivityObject(JSONObject activityObj)
 	{
@@ -84,7 +117,7 @@ public class ClientSolution extends Thread {
 													  );
 		writeMsg(message.messageToString());
 	}
-	
+
 	// called by the gui when the user clicks disconnect
 	public void disconnect()
 	{
@@ -93,52 +126,66 @@ public class ClientSolution extends Thread {
 		closeCon();
 		textFrame.setVisible(false);
 		textFrame.dispose();
-
-		
-		/*
-		 * other things to do
-		 */
 	}
-	
+
 	// make a connection to a server stored in the Settings.
-	private void initiateConnection()
+	private void initiateBaseConnection()
 	{
-		try 
+		try
 		{
-			outgoingConnection(new Socket(Settings.getRemoteHostname(),Settings.getRemotePort()));
-		} 
-		catch (IOException e) 
+			socket = new Socket(Settings.getRemoteHostname(),Settings.getRemotePort());
+			outgoingBaseConnection();
+		}
+		catch (IOException e)
 		{
 			log.error("failed to make connection to "+Settings.getRemoteHostname()+":"+Settings.getRemotePort()+" :"+e);
 			System.exit(-1);
-		}		
+		}
+	}
+
+    private void initiateSSLConnection()
+	{
+		try
+		{
+            factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+			sslSocket = (SSLSocket)factory.createSocket(Settings.getRemoteHostname(),Settings.getRemotePort());
+			sslSocket.setEnabledCipherSuites(sslSocket.getEnabledCipherSuites());
+			sslSocket.setUseClientMode(true);
+			outgoingSSLConnection();
+		}
+		catch (IOException e)
+		{
+			log.error("failed to make secure connection to "+Settings.getRemoteHostname()+":"+Settings.getRemotePort()+" :"+e);
+			System.exit(-1);
+		}
+
 	}
 
 	// write a message to the server
-	public boolean writeMsg(String msg) 
+	public boolean writeMsg(String msg)
     {
         if(open){
             outwriter.println(msg);
             outwriter.flush();
-            return true;    
+            return true;
         }
         return false;
     }
-    
+
     // Close the connection to the server.
     public void closeCon()
     {
         if(open)
         {
             log.info("closing connection "+Settings.socketAddress(socket));
-            try 
+            try
             {
                 inreader.close();
                 out.close();
                 in.close();
                 outwriter.close();
-            } 
-            catch (IOException e) 
+            }
+            catch (IOException e)
             {
                 // already closed?
                 log.error("received exception closing the connection "+Settings.socketAddress(socket)+": "+e);
@@ -154,9 +201,9 @@ public class ClientSolution extends Thread {
 		Message error;
 		// get message object from JSONObject to determine command
 		incomingMessage = gson.fromJson(msg,Message.class);
-				
 
-		
+
+
 		// get command type and act accordingly.
 		switch(incomingMessage.getCommand())
 		{
@@ -172,18 +219,18 @@ public class ClientSolution extends Thread {
            case "LOGIN_SUCCESS":
 	           	log.debug("login successful");
 	           	return false;
-           	
+
            case "REGISTER_FAILED":
 	           	incomingMessage = gson.fromJson(msg,RegisterFailedMessage.class);
 	           	log.error(((RegisterFailedMessage) incomingMessage).getInfo());
 	           	return true;
-           	
+
            case "REGISTER_SUCCESS":
 	           	incomingMessage = gson.fromJson(msg,RegisterSuccessMessage.class);
 	           	log.debug(((RegisterSuccessMessage) incomingMessage).getInfo());
 	           	login();
 	           	return false;
-           	
+
            case "ACTIVITY_BROADCAST":
 	           	incomingMessage = gson.fromJson(msg,ActivityBroadcastMessage.class);
 	           	if(((ActivityBroadcastMessage) incomingMessage).getActivity() == null)
@@ -194,36 +241,46 @@ public class ClientSolution extends Thread {
 		        }
 	           	textFrame.setOutputText(((ActivityBroadcastMessage) incomingMessage).getActivity());
 	           	return false;
-           	
+
            case "INVALID_MESSAGE":
 	           	incomingMessage = gson.fromJson(msg,InvalidMessage.class);
 	           	log.error(((InvalidMessage) incomingMessage).getInfo());
 	           	return true;
-           	
+
            case "AUTHENTICATE_FAIL":
 	           	incomingMessage = gson.fromJson(msg,AuthenticateFailMessage.class);
 	           	log.error(((AuthenticateFailMessage) incomingMessage).getInfo());
 	           	return true;
 
            case "REDIRECT":
-	           	incomingMessage = gson.fromJson(msg,RedirectMessage.class);
-	           	if(((RedirectMessage) incomingMessage).getHostname() == null)
+	           	incomingMessage = gson.fromJson(msg,RedirectSecureMessage.class);
+	           	if(((RedirectSecureMessage) incomingMessage).getHostname() == null)
 		        {
 		            error = new InvalidMessage("the received message did not contain a hostname");
 		            writeMsg(error.messageToString());
 		            return true;
 		        }
-		        if(((RedirectMessage) incomingMessage).getPort() == null)
+		        if(((RedirectSecureMessage) incomingMessage).getPort() == null)
 		        {
 		            error = new InvalidMessage("the received message did not contain a port");
 		            writeMsg(error.messageToString());
 		            return true;
 		        }
-	           	log.debug("redirecting to " + ((RedirectMessage) incomingMessage).getHostname() +":"+ ((RedirectMessage) incomingMessage).getPort());
-	           	Settings.setRemoteHostname(((RedirectMessage) incomingMessage).getHostname());
-	           	Settings.setRemotePort(((RedirectMessage) incomingMessage).getPort());
-	           	clientSolution = new ClientSolution();
-	           	return true;
+	           	log.debug("redirecting to " + ((RedirectSecureMessage) incomingMessage).getHostname() +":"+ ((RedirectSecureMessage) incomingMessage).getPort());
+	           	Settings.setRemoteHostname(((RedirectSecureMessage) incomingMessage).getHostname());
+	           	Settings.setRemotePort(((RedirectSecureMessage) incomingMessage).getPort());
+	           	closeCon();
+                if (((RedirectSecureMessage) incomingMessage).getSecure() == true)
+                {
+                    initiateSSLConnection();
+                }
+                else
+                {
+                    initiateBaseConnection();
+                }
+                login_register();
+	           	return false;
+
 	        default:
 	        	log.error("unrecognised command");
 	        	error = new InvalidMessage("unrecognised command");
@@ -234,28 +291,36 @@ public class ClientSolution extends Thread {
 	}
 
 
-	
+
 	/*
 	 * A new outgoing connection has been established, and a reference is returned to it
 	 */
-	public synchronized void outgoingConnection(Socket s) throws IOException
+	public synchronized void outgoingBaseConnection() throws IOException
 	{
-		log.debug("outgoing connection: "+Settings.socketAddress(s));
-		socket = s;
+		log.debug("outgoing connection: "+Settings.socketAddress(socket));
 		in = new DataInputStream(socket.getInputStream());
         out = new DataOutputStream(socket.getOutputStream());
         inreader = new BufferedReader( new InputStreamReader(in));
         outwriter = new PrintWriter(out, true);
         open = true;
-        
 	}
-	
+
+    public synchronized void outgoingSSLConnection() throws IOException
+	{
+		log.debug("outgoing secure connection: "+Settings.socketAddress(sslSocket));
+		in = new DataInputStream(sslSocket.getInputStream());
+        out = new DataOutputStream(sslSocket.getOutputStream());
+        inreader = new BufferedReader( new InputStreamReader(in));
+        outwriter = new PrintWriter(out, true);
+        open = true;
+	}
+
 
 	// the client's run method, to receive messages
 	@Override
 	public void run()
 	{
-		try 
+		try
         {
             String data;
             while(!term && (data = inreader.readLine())!=null)
@@ -264,9 +329,9 @@ public class ClientSolution extends Thread {
             }
             log.debug("connection closed to "+Settings.socketAddress(socket));
             disconnect();
-      
-        } 
-        catch (IOException e) 
+
+        }
+        catch (IOException e)
         {
             log.error("connection " + Settings.socketAddress(socket)
                       + " closed with exception: " + e
@@ -280,14 +345,14 @@ public class ClientSolution extends Thread {
 	// log in to server with Settings
 	private void login()
 	{
-		LoginMessage message = new LoginMessage(Settings.getUsername(),Settings.getSecret());
+		LoginSecureMessage message = new LoginSecureMessage(Settings.getUsername(),Settings.getSecret(),true);
 		writeMsg(message.messageToString());
 	}
-	
+
 	// register with server using Settings
 	private void register()
 	{
-		RegisterMessage message = new RegisterMessage(Settings.getUsername(),Settings.getSecret());
+		RegisterSecureMessage message = new RegisterSecureMessage(Settings.getUsername(),Settings.getSecret(),true);
 		writeMsg(message.messageToString());
-	}	
+	}
 }

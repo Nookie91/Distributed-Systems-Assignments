@@ -56,13 +56,13 @@ public class ClientSSLSolution extends Thread {
 		log.debug("opening the gui");
 		textFrame = new TextFrame();
 		term = false;
-		
+
 		// Message msg;
 		factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
 
 
-		
-		
+
+
 		// Open the connection handled by the Settings.
         initiateConnection();
 
@@ -116,9 +116,9 @@ public class ClientSSLSolution extends Thread {
 			sslSocket = (SSLSocket)factory.createSocket(Settings.getRemoteHostname(),Settings.getRemotePort());
 			String[] cipher = {"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA"};
 			sslSocket.setEnabledCipherSuites(cipher);//sslSocket.getEnabledCipherSuites());
-			
+
 			sslSocket.setUseClientMode(true);
-			
+
 			outgoingConnection();
 		}
 		catch (IOException e)
@@ -126,7 +126,7 @@ public class ClientSSLSolution extends Thread {
 			log.error("failed to make connection to "+Settings.getRemoteHostname()+":"+Settings.getRemotePort()+" :"+e);
 			System.exit(-1);
 		}
-		
+
 	}
 
 	// write a message to the server
@@ -239,6 +239,7 @@ public class ClientSSLSolution extends Thread {
 	           	Settings.setRemotePort(((RedirectMessage) incomingMessage).getPort());
 	           	clientSolution = new ClientSSLSolution();
 	           	return true;
+
 	        default:
 	        	log.error("unrecognised command");
 	        	error = new InvalidMessage("unrecognised command");
@@ -262,10 +263,10 @@ public class ClientSSLSolution extends Thread {
         outwriter = new PrintWriter(out, true);
         open = true;
 
-        
+
 	}
 
-	
+
 	// the client's run method, to receive messages
 	@Override
 	public void run()

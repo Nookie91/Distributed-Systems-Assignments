@@ -32,11 +32,11 @@ public class Connection extends Thread
 	
 	Connection(Socket socket) throws IOException
 	{
-		in = new DataInputStream(((SSLSocket)socket).getInputStream());
-	    out = new DataOutputStream(((SSLSocket)socket).getOutputStream());
+		in = new DataInputStream(((Socket)socket).getInputStream());
+	    out = new DataOutputStream(((Socket)socket).getOutputStream());
 	    inreader = new BufferedReader( new InputStreamReader(in));
 	    outwriter = new PrintWriter(out, true);
-	    this.socket = (SSLSocket)socket;
+	    this.socket = (Socket)socket;
 	    open = true;
 	    
 	    start();

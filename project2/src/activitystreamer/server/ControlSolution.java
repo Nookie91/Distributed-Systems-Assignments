@@ -22,7 +22,7 @@ public class ControlSolution extends Control
 {
 	private static final Logger log = LogManager.getLogger();
 
-	public static enum ConnectionType {CLIENT,SERVER,UNDEFINED};
+	public static enum ConnectionType {CLIENT,SERVER,UNSECURED,SECURED};
 	private static String serverID;
 
 	private static int numberOfLoggedInUsers;
@@ -35,8 +35,8 @@ public class ControlSolution extends Control
 	private static Map<Connection,ConnectionType> connectionType;
 	private static Map<Connection, String> connectionStatus;
 	Gson gson;
-	
-	
+
+
 
     private static SSLListener sslListener;
 
@@ -97,11 +97,11 @@ public class ControlSolution extends Control
 		System.out.println();
 		System.out.println(s);
 		System.out.println();
-		connectionType.put(con, ConnectionType.UNDEFINED);
+		connectionType.put(con, ConnectionType.UNSECURED);
 		connectionStatus.put(con,null);
 		return con;
 	}
-	
+
 	@Override
 	public Connection incomingConnection(SSLSocket s) throws IOException
 	{
@@ -112,29 +112,29 @@ public class ControlSolution extends Control
 		System.out.println();
 		System.out.println(s);
 		System.out.println();
-		connectionType.put(con, ConnectionType.UNDEFINED);
+		connectionType.put(con, ConnectionType.SECURED);
 		connectionStatus.put(con,null);
 		return con;
 	}
-	
-	public void initiateConnection()
+
+	public void initiateSSLConnection()
 	{
 		// make a connection to another server if remote hostname is supplied
 		if(Settings.getRemoteHostname()!=null)
 		{
-			try 
+			try
 			{
 				SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
 				System.out.println("made it here");
 				SSLSocket sslSocket = (SSLSocket)factory.createSocket(Settings.getRemoteHostname(),Settings.getRemotePort());
 				String[] cipher = {"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA"};
 				sslSocket.setEnabledCipherSuites(cipher);//sslSocket.getEnabledCipherSuites());
-				
+
 				sslSocket.setUseClientMode(true);
-				
+
 				outgoingConnection(sslSocket);
-			} 
-			catch (IOException e) 
+			}
+			catch (IOException e)
 			{
 				log.error("failed to make connection to "+Settings.getRemoteHostname()+":"+Settings.getRemotePort()+" :"+e);
 				System.exit(-1);
@@ -151,21 +151,21 @@ public class ControlSolution extends Control
 		Message message;
 		Connection con = super.outgoingConnection(s);
 
-		message = new AuthenticateMessage(Settings.getSecret());
+		message = new AuthenticateSecureMessage(Settings.getSecret(),true);
 		con.writeMsg(message.messageToString());
 		connectionType.put(con, ConnectionType.SERVER);
 		connectionStatus.put(con,"");
 
 		return con;
 	}
-	
+
 	@Override
 	public Connection outgoingConnection(SSLSocket s) throws IOException
 	{
 		Message message;
 		Connection con = super.outgoingConnection(s);
 
-		message = new AuthenticateMessage(Settings.getSecret());
+		message = new AuthenticateSecureMessage(Settings.getSecret(),true);
 		con.writeMsg(message.messageToString());
 		connectionType.put(con, ConnectionType.SERVER);
 		connectionStatus.put(con,"");
@@ -248,6 +248,8 @@ public class ControlSolution extends Control
 			case "LOCK_ALLOWED":
 				return lockAllowed(con,msg);
 
+			case "REDIRECT":
+				return redirect(con,msg);
 			default:
                 return true;
 		}
@@ -310,6 +312,14 @@ public class ControlSolution extends Control
 	}
 
 
+	private boolean redirect(Connection con,String mapMsg)
+	{
+		RedirectSecureMessage message = gson.fromJson(mapMsg, RedirectSecureMessage.class);
+		Settings.setRemotePort(message.getPort());
+		initiateSSLConnection();
+		return true;
+	}
+	
     // broadcast server to other servers.
 	private void serverBroadcast()
 	{
@@ -417,11 +427,23 @@ public class ControlSolution extends Control
     // servers.
     private boolean authenticate(Connection con, String mapMsg)
     {
-        AuthenticateMessage msg = gson.fromJson(mapMsg,AuthenticateMessage.class);
+        AuthenticateSecureMessage msg = gson.fromJson(mapMsg,AuthenticateSecureMessage.class);
         AuthenticateFailMessage errorMsg;
 
         if(msg.checkFields(con))
         {
+            return true;
+        }
+        
+        if (msg.getSecure() == true && connectionType.get(con) == ConnectionType.UNSECURED)
+        {
+            Message replyMsg = new RedirectSecureMessage(Settings.getLocalHostname(),
+            							   Settings.getLocalSecurePort(),
+                                           true
+                                          );
+            con.writeMsg(replyMsg.messageToString());
+            log.info("Redirecting to Hostname: " + Settings.getLocalHostname()
+                                     + " Port: " + Settings.getLocalSecurePort());
             return true;
         }
 
@@ -447,22 +469,36 @@ public class ControlSolution extends Control
     // adding them to the list of logged in users if they are correct.
     private boolean login(Connection con, String mapMsg)
     {
-        LoginMessage msg = gson.fromJson(mapMsg,LoginMessage.class);
+        LoginSecureMessage msg = gson.fromJson(mapMsg,LoginSecureMessage.class);
         Message replyMsg;
-
+        System.out.println(mapMsg);
 
         for(AuthorisedServer server: servers)
         {
             if(numberOfLoggedInUsers >= server.getLoad() + 2)
             {
-                replyMsg = new RedirectMessage(server.getHostname(),
-                                               server.getPort()
+                replyMsg = new RedirectSecureMessage(server.getHostname(),
+                                               server.getPort(),
+                                               false
                                               );
                 con.writeMsg(replyMsg.messageToString());
                 log.info("Redirecting to Hostname: " + server.getHostname()
                                          + " Port: " + server.getPort());
                 return true;
             }
+        }
+        log.debug(msg.getSecure());
+        log.debug(connectionType.get(con));
+        if (msg.getSecure() == true && connectionType.get(con) == ConnectionType.UNSECURED)
+        {
+            replyMsg = new RedirectSecureMessage(Settings.getLocalHostname(),
+            							   Settings.getLocalSecurePort(),
+                                           true
+                                          );
+            con.writeMsg(replyMsg.messageToString());
+            log.info("Redirecting to Hostname: " + Settings.getLocalHostname()
+                                     + " Port: " + Settings.getLocalSecurePort());
+            return true;
         }
 
         if(msg.checkFields(con))
@@ -553,7 +589,7 @@ public class ControlSolution extends Control
     // if no other servers are connected, send a succeed.
     private boolean register(Connection con, String mapMsg)
     {
-        RegisterMessage msg = gson.fromJson(mapMsg,RegisterMessage.class);
+        RegisterSecureMessage msg = gson.fromJson(mapMsg,RegisterSecureMessage.class);
         LockRequestMessage lockRequest;
         InvalidMessage errorMsg;
         Message replyMsg;
@@ -561,6 +597,18 @@ public class ControlSolution extends Control
 
         if(msg.checkFields(con))
         {
+            return true;
+        }
+
+        if (msg.getSecure() == true && connectionType.get(con) == ConnectionType.UNSECURED)
+        {
+            replyMsg = new RedirectSecureMessage(Settings.getLocalHostname(),
+            									 Settings.getLocalSecurePort(),
+	                                             true
+	                                            );
+            con.writeMsg(replyMsg.messageToString());
+            log.info("Redirecting to Hostname: " + Settings.getLocalHostname()
+                                     + " Port: " + Settings.getLocalSecurePort());
             return true;
         }
 
