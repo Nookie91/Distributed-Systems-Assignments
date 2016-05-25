@@ -200,9 +200,15 @@ public class ClientSolution extends Thread {
 		Message incomingMessage;
 		Message error;
 		// get message object from JSONObject to determine command
-		incomingMessage = gson.fromJson(msg,Message.class);
-
-
+		try
+				{
+					incomingMessage = gson.fromJson(msg,Message.class);
+				}
+				catch(IllegalStateException e)
+				{
+					log.error("Message recieved is not a Json Object");
+					return true;
+				}
 
 		// get command type and act accordingly.
 		switch(incomingMessage.getCommand())
