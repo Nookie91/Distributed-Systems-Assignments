@@ -37,6 +37,7 @@ public class ClientSolution extends Thread {
     private Socket socket;
     SSLSocketFactory factory;
     private SSLSocket sslSocket;
+    private boolean isSocketSSL;
 
 
 	// this is a singleton object
@@ -134,6 +135,7 @@ public class ClientSolution extends Thread {
 		try
 		{
 			socket = new Socket(Settings.getRemoteHostname(),Settings.getRemotePort());
+			isSocketSSL = false;
 			outgoingBaseConnection();
 		}
 		catch (IOException e)
@@ -151,6 +153,7 @@ public class ClientSolution extends Thread {
 			sslSocket = (SSLSocket)factory.createSocket(Settings.getRemoteHostname(),Settings.getRemotePort());
 			sslSocket.setEnabledCipherSuites(sslSocket.getEnabledCipherSuites());
 			sslSocket.setUseClientMode(true);
+			isSocketSSL = true;
 			outgoingSSLConnection();
 		}
 		catch (IOException e)
@@ -177,7 +180,15 @@ public class ClientSolution extends Thread {
     {
         if(open)
         {
-            log.info("closing connection "+Settings.socketAddress(socket));
+        	if (!isSocketSSL)
+        	{
+        		log.info("closing connection "+Settings.socketAddress(socket));
+        	}
+        	else 
+        	{
+        		log.info("closing connection "+Settings.socketAddress(sslSocket));
+        	}
+            
             try
             {
                 inreader.close();
@@ -188,7 +199,15 @@ public class ClientSolution extends Thread {
             catch (IOException e)
             {
                 // already closed?
-                log.error("received exception closing the connection "+Settings.socketAddress(socket)+": "+e);
+            	if (!isSocketSSL)
+            	{
+            		log.error("received exception closing the connection "+Settings.socketAddress(socket)+": "+e);
+            	}
+            	else
+            	{
+            		log.error("received exception closing the connection "+Settings.socketAddress(sslSocket)+": "+e);
+            	}
+                
             }
         }
     }
@@ -333,15 +352,33 @@ public class ClientSolution extends Thread {
             {
                 term=process(data);
             }
-            log.debug("connection closed to "+Settings.socketAddress(socket));
+            if(!isSocketSSL)
+            {
+            	log.debug("connection closed to "+Settings.socketAddress(socket));
+            }
+            else
+            {
+            	log.debug("connection closed to "+Settings.socketAddress(sslSocket));
+            }
+            
             disconnect();
 
         }
         catch (IOException e)
         {
-            log.error("connection " + Settings.socketAddress(socket)
-                      + " closed with exception: " + e
-                     );
+        	if(!isSocketSSL)
+        	{
+        		log.error("connection " + Settings.socketAddress(socket)
+                + " closed with exception: " + e
+               );
+        	}
+        	else
+        	{
+        		log.error("connection " + Settings.socketAddress(sslSocket)
+                + " closed with exception: " + e
+               );
+        	}
+            
             disconnect();
         }
 		open = false;
