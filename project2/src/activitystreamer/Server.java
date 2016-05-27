@@ -30,9 +30,9 @@ public class Server {
 	
 	public static void main(String[] args) 
 	{
-		System.setProperty("javax.net.ssl.trustStore", "src/activitystreamer/server.jks");
+		System.setProperty("javax.net.ssl.trustStore", "server.jks");
 		System.setProperty("javax.net.ssl.trustStorePassword", "admin123");
-		System.setProperty("javax.net.ssl.keyStore", "src/activitystreamer/server.jks");
+		System.setProperty("javax.net.ssl.keyStore", "server.jks");
 		System.setProperty("javax.net.ssl.keyStorePassword", "admin123");
 		
 		log.info("reading command line options");
@@ -45,6 +45,7 @@ public class Server {
 		options.addOption("lh",true,"local hostname");
 		options.addOption("a",true,"activity interval in milliseconds");
 		options.addOption("s",true,"secret for the server to use");
+		options.addOption("sl",true,"server load");
 		
 		
 		// build the parser
@@ -137,6 +138,20 @@ public class Server {
 		if(cmd.hasOption("s"))
 		{
 			Settings.setSecret(cmd.getOptionValue("s"));
+		}
+		
+		if(cmd.hasOption("sl"))
+		{
+			try
+			{
+				int sl = Integer.parseInt(cmd.getOptionValue("sl"));
+				Settings.setServerLoad(sl);
+			} 
+			catch (NumberFormatException e)
+			{
+				log.error("-sl requires a number, parsed: "+cmd.getOptionValue("sl"));
+				help(options);
+			}
 		}
 		
 		log.info("starting server");

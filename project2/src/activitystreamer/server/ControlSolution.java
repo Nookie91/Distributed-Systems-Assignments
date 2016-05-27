@@ -22,10 +22,11 @@ public class ControlSolution extends Control
 {
 	private static final Logger log = LogManager.getLogger();
 
-	public static enum ConnectionType {CLIENT,SERVER,UNSECURED,SECURED};
+	public static enum ConnectionType {CLIENT,OUTGOINGSERVER,INCOMINGSERVER,UNSECURED,SECURED};
 	private static String serverID;
 
 	private static int numberOfLoggedInUsers;
+	private static int numberOfServers;
 	private static Map<String, String> userDatabase;
 	private static ArrayList<AuthorisedServer> servers;
 
@@ -65,6 +66,7 @@ public class ControlSolution extends Control
 		}
 
 		numberOfLoggedInUsers = 0;
+		numberOfServers = 0;
 		userDatabase = new HashMap<String, String>();
 		servers = new ArrayList<AuthorisedServer>();
 
@@ -91,12 +93,6 @@ public class ControlSolution extends Control
 	public Connection incomingConnection(Socket s) throws IOException
 	{
 		Connection con = super.incomingConnection(s);
-		/*
-		 * do additional things here
-		 */
-		System.out.println();
-		System.out.println(s);
-		System.out.println();
 		connectionType.put(con, ConnectionType.UNSECURED);
 		connectionStatus.put(con,null);
 		return con;
@@ -106,12 +102,6 @@ public class ControlSolution extends Control
 	public Connection incomingConnection(SSLSocket s) throws IOException
 	{
 		Connection con = super.incomingConnection(s);
-		/*
-		 * do additional things here
-		 */
-		System.out.println();
-		System.out.println(s);
-		System.out.println();
 		connectionType.put(con, ConnectionType.SECURED);
 		connectionStatus.put(con,null);
 		return con;
@@ -125,13 +115,10 @@ public class ControlSolution extends Control
 			try
 			{
 				SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-				System.out.println("made it here");
 				SSLSocket sslSocket = (SSLSocket)factory.createSocket(Settings.getRemoteHostname(),Settings.getRemotePort());
 				String[] cipher = {"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA"};
-				sslSocket.setEnabledCipherSuites(cipher);//sslSocket.getEnabledCipherSuites());
-
+				sslSocket.setEnabledCipherSuites(cipher);
 				sslSocket.setUseClientMode(true);
-
 				outgoingConnection(sslSocket);
 			}
 			catch (IOException e)
@@ -153,7 +140,7 @@ public class ControlSolution extends Control
 
 		message = new AuthenticateSecureMessage(Settings.getSecret(),true);
 		con.writeMsg(message.messageToString());
-		connectionType.put(con, ConnectionType.SERVER);
+		connectionType.put(con, ConnectionType.OUTGOINGSERVER);
 		connectionStatus.put(con,"");
 
 		return con;
@@ -164,12 +151,10 @@ public class ControlSolution extends Control
 	{
 		Message message;
 		Connection con = super.outgoingConnection(s);
-
 		message = new AuthenticateSecureMessage(Settings.getSecret(),true);
 		con.writeMsg(message.messageToString());
-		connectionType.put(con, ConnectionType.SERVER);
+		connectionType.put(con, ConnectionType.OUTGOINGSERVER);
 		connectionStatus.put(con,"");
-
 		return con;
 	}
 
@@ -181,13 +166,18 @@ public class ControlSolution extends Control
 	public void connectionClosed(Connection con)
 	{
 		super.connectionClosed(con);
-		/*
-		 * do additional things here
-		 */
-
+		if (connectionType.get(con) == ConnectionType.CLIENT)
+		{
+			decrementUsers();
+		}
+		else if (connectionType.get(con) == ConnectionType.INCOMINGSERVER)
+		{
+			numberOfServers --;
+		}
+		
 		connectionType.remove(con);
 		connectionStatus.remove(con);
-        decrementUsers();
+        
 	}
 
 
@@ -316,7 +306,14 @@ public class ControlSolution extends Control
 	{
 		RedirectSecureMessage message = gson.fromJson(mapMsg, RedirectSecureMessage.class);
 		Settings.setRemotePort(message.getPort());
-		initiateSSLConnection();
+		if(message.getSecure())
+		{
+			initiateSSLConnection();
+		}
+		else
+		{
+			initiateConnection();
+		}
 		return true;
 	}
 	
@@ -326,11 +323,14 @@ public class ControlSolution extends Control
 		ServerAnnounceMessage message = new ServerAnnounceMessage(serverID,
 																  numberOfLoggedInUsers,
 																  Settings.getLocalHostname(),
-																  Settings.getLocalPort()
+																  Settings.getLocalPort(),
+																  numberOfServers,
+																  0
 																 );
 		for(Connection con: getConnections())
 		{
-			if(connectionType.get(con) == ConnectionType.SERVER)
+			if(connectionType.get(con) == ConnectionType.OUTGOINGSERVER
+					|| connectionType.get(con) == ConnectionType.INCOMINGSERVER)
 			{
 				con.writeMsg(message.messageToString());
 			}
@@ -343,7 +343,8 @@ public class ControlSolution extends Control
     {
         ServerAnnounceMessage msg = gson.fromJson(mapMsg,ServerAnnounceMessage.class);
         InvalidMessage errorMsg;
-        if(connectionType.get(con) == ConnectionType.SERVER
+        if((connectionType.get(con) == ConnectionType.OUTGOINGSERVER
+        		|| connectionType.get(con) == ConnectionType.INCOMINGSERVER)
            && connectionStatus.get(con).equals("")
           )
         {
@@ -358,22 +359,28 @@ public class ControlSolution extends Control
                 if(server.getID().equals(msg.getID()))
                 {
                     server.updateLoad(msg.getLoad());
+                    server.updateServerLoad(msg.getServerLoad());
                     newServer = false;
                     break;
                 }
             }
+            msg.incrementDistance();
             if(newServer == true)
             {
+            	
                 servers.add(new AuthorisedServer(msg.getID(),
                                                  msg.getLoad(),
                                                  msg.getHostname(),
-                                                 msg.getPort()
+                                                 msg.getPort(),
+                                                 msg.getServerLoad(),
+                                                 msg.getDistance()
                                                 )
                             );
             }
             for(Connection connection: getConnections())
             {
-                if(connectionType.get(connection) == ConnectionType.SERVER
+                if((connectionType.get(connection) == ConnectionType.OUTGOINGSERVER
+                		|| connectionType.get(connection) == ConnectionType.INCOMINGSERVER)
                    && !connection.equals(con)
                   )
                 {
@@ -397,7 +404,8 @@ public class ControlSolution extends Control
     {
         ActivityBroadcastMessage msg = gson.fromJson(mapMsg,ActivityBroadcastMessage.class);
         InvalidMessage errorMsg;
-        if(connectionType.get(con) == ConnectionType.SERVER
+        if((connectionType.get(con) == ConnectionType.OUTGOINGSERVER
+        		|| connectionType.get(con) == ConnectionType.INCOMINGSERVER)
            && connectionStatus.get(con).equals("")
           )
         {
@@ -429,6 +437,7 @@ public class ControlSolution extends Control
     {
         AuthenticateSecureMessage msg = gson.fromJson(mapMsg,AuthenticateSecureMessage.class);
         AuthenticateFailMessage errorMsg;
+        int counter = 0;
 
         if(msg.checkFields(con))
         {
@@ -437,6 +446,28 @@ public class ControlSolution extends Control
         
         if (msg.getSecure() == true && connectionType.get(con) == ConnectionType.UNSECURED)
         {
+        	if(numberOfServers >= Settings.getServerLoad())
+            {
+            	while(true)
+            	{
+            		counter++;
+            		for(AuthorisedServer server: servers)
+            		{
+            			if(server.getDistance() == counter && server.getServerLoad() < Settings.getServerLoad())
+            			{
+            				Message replyMsg = new RedirectSecureMessage(server.getHostname(),
+    						 							   server.getPort(),
+    						                                false
+    						                               );
+    						 con.writeMsg(replyMsg.messageToString());
+    						 log.info("Redirecting to Hostname: " + server.getHostname()
+    						                          + " Port: " + server.getPort()
+    						                          + " Due to server load");
+    						 return true;
+            			}
+            		}
+            	}
+            }
             Message replyMsg = new RedirectSecureMessage(Settings.getLocalHostname(),
             							   Settings.getLocalSecurePort(),
                                            true
@@ -449,7 +480,8 @@ public class ControlSolution extends Control
 
         if(msg.doesSecretMatch(Settings.getSecret()))
         {
-            connectionType.put(con,ConnectionType.SERVER);
+        	numberOfServers ++;
+            connectionType.put(con,ConnectionType.INCOMINGSERVER);
             connectionStatus.put(con,"");
             return false;
         }
@@ -636,7 +668,8 @@ public class ControlSolution extends Control
 
             for(Connection connection: getConnections())
             {
-                if(connectionType.get(connection) == ConnectionType.SERVER)
+                if((connectionType.get(connection) == ConnectionType.OUTGOINGSERVER
+                		|| connectionType.get(connection) == ConnectionType.INCOMINGSERVER))
                 {
                     connection.writeMsg(lockRequest.messageToString());
                     sentLockRequests.add(connection);
@@ -668,7 +701,8 @@ public class ControlSolution extends Control
         Message replyMsg;
         ArrayList<Connection> sentLockRequests;
 
-        if(connectionType.get(con) == ConnectionType.SERVER
+        if((connectionType.get(con) == ConnectionType.OUTGOINGSERVER
+        		|| connectionType.get(con) == ConnectionType.INCOMINGSERVER)
            && connectionStatus.get(con).equals("")
           )
         {
@@ -690,7 +724,8 @@ public class ControlSolution extends Control
                 sentLockRequests = new ArrayList<Connection>();
                 for(Connection connection: getConnections())
                 {
-                    if(connectionType.get(connection) == ConnectionType.SERVER
+                    if((connectionType.get(connection) == ConnectionType.OUTGOINGSERVER
+                    		|| connectionType.get(connection) == ConnectionType.INCOMINGSERVER)
                        && !connection.equals(con)
                       )
                     {
@@ -732,7 +767,8 @@ public class ControlSolution extends Control
         InvalidMessage errorMsg;
         Message replyMsg;
         log.debug("got lock denied from: " + con);
-        if(connectionType.get(con) == ConnectionType.SERVER
+        if((connectionType.get(con) == ConnectionType.OUTGOINGSERVER
+        		|| connectionType.get(con) == ConnectionType.INCOMINGSERVER)
            && connectionStatus.get(con).equals("")
           )
 
@@ -751,7 +787,8 @@ public class ControlSolution extends Control
 
             for(Connection connection: getConnections())
             {
-                if(connectionType.get(connection) == ConnectionType.SERVER
+                if((connectionType.get(connection) == ConnectionType.OUTGOINGSERVER
+                		|| connectionType.get(connection) == ConnectionType.INCOMINGSERVER)
                    && !connection.equals(con)
                   )
                 {
@@ -796,7 +833,8 @@ public class ControlSolution extends Control
         Message replyMsg;
         ArrayList<Connection> sentLockRequests;
 
-        if(connectionType.get(con) == ConnectionType.SERVER
+        if((connectionType.get(con) == ConnectionType.OUTGOINGSERVER
+        		|| connectionType.get(con) == ConnectionType.INCOMINGSERVER)
            && connectionStatus.get(con).equals("")
           )
         {

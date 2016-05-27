@@ -20,7 +20,18 @@ public class Settings
 	private static int activityInterval = 5000; // milliseconds
 	private static String secret = null;
 	private static String username = "anonymous";
+	private static int serverLoad = 2;
 
+	
+	public static int getServerLoad()
+	{
+		return serverLoad;
+	}
+	
+	public static void setServerLoad(int serverLoad)
+	{
+		Settings.serverLoad = serverLoad;
+	}
 
 	public static int getLocalPort()
 	{

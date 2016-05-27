@@ -9,6 +9,9 @@ public class ServerAnnounceMessage extends Message
     private String hostname;
     private Integer load;
     private Integer port;
+    private Integer serverLoad;
+    private Integer distance;
+    
 
     public ServerAnnounceMessage(String id, Integer load, String hostname, Integer port)
     {
@@ -17,6 +20,19 @@ public class ServerAnnounceMessage extends Message
         this.port = port;
         this.hostname = hostname;
         this.load = load;
+        this.serverLoad = -1;
+        this.distance = -1;
+    }
+    
+    public ServerAnnounceMessage(String id, Integer load, String hostname, Integer port, Integer serverLoad, Integer distance)
+    {
+        super(command);
+        this.id = id;
+        this.port = port;
+        this.hostname = hostname;
+        this.load = load;
+        this.serverLoad = serverLoad;
+        this.distance = distance;
     }
     
     public String getID()
@@ -37,6 +53,32 @@ public class ServerAnnounceMessage extends Message
     public Integer getPort()
     {
         return port;
+    }
+    
+    public Integer getServerLoad()
+    {
+    	if (serverLoad == null)
+    	{
+    		serverLoad = -1;
+    	}
+    	return serverLoad;
+    }
+    
+    public void incrementDistance()
+    {
+    	if(distance == null || distance == -1)
+    	{
+    		distance = -1;
+    	}
+    	else
+    	{
+    		distance ++;
+    	}
+    }
+    
+    public Integer getDistance()
+    {
+    	return distance;
     }
 
     public boolean checkFields(Connection con)
