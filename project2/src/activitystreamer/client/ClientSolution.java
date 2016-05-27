@@ -204,7 +204,7 @@ public class ClientSolution extends Thread {
 				{
 					incomingMessage = gson.fromJson(msg,Message.class);
 				}
-				catch(IllegalStateException e)
+				catch(Exception e)
 				{
 					log.error("Message recieved is not a Json Object");
 					return true;

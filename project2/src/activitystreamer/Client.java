@@ -14,6 +14,7 @@ import activitystreamer.util.Settings;
 
 public class Client {
 	
+	
 	private static final Logger log = LogManager.getLogger();
 	
 	private static void help(Options options)
@@ -27,9 +28,13 @@ public class Client {
 	
 	public static void main(String[] args) 
 	{
-		
+		System.setProperty("javax.net.ssl.trustStore", "src/activitystreamer/client.jks");
+		System.setProperty("javax.net.ssl.trustStorePassword", "admin123");
+		System.setProperty("javax.net.ssl.keyStore", "src/activitystreamer/client.jks");
+		System.setProperty("javax.net.ssl.keyStorePassword", "admin123");
 		log.info("reading command line options");
 		
+				
 		Options options = new Options();
 		options.addOption("u",true,"username");
 		options.addOption("rp",true,"remote port number");

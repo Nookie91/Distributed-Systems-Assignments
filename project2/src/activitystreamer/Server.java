@@ -30,6 +30,10 @@ public class Server {
 	
 	public static void main(String[] args) 
 	{
+		System.setProperty("javax.net.ssl.trustStore", "src/activitystreamer/server.jks");
+		System.setProperty("javax.net.ssl.trustStorePassword", "admin123");
+		System.setProperty("javax.net.ssl.keyStore", "src/activitystreamer/server.jks");
+		System.setProperty("javax.net.ssl.keyStorePassword", "admin123");
 		
 		log.info("reading command line options");
 		
