@@ -90,7 +90,7 @@ public class ClientSolution extends Thread {
 
         // Login in if a secret was provided in arguments, otherwise
         // register a new user.
-		login_register();
+		login_anonymous();
 
 		// start the client's thread for reading incoming messages.
        start();
@@ -385,6 +385,12 @@ public class ClientSolution extends Thread {
 		textFrame.dispose();
 	}
 
+	private void login_anonymous()
+	{
+		LoginSecureMessage message = new LoginSecureMessage("anonymous","",true);
+		writeMsg(message.messageToString());
+	}
+	
 	// log in to server with Settings
 	private void login()
 	{
