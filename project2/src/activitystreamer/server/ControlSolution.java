@@ -191,7 +191,16 @@ public class ControlSolution extends Control
 		InvalidMessage error;
 
 		Message message;
-		message = gson.fromJson(msg,Message.class);
+		try
+		{
+			message = gson.fromJson(msg,Message.class);
+		}
+		catch(IllegalStateException e)
+		{
+			log.error("Message recieved is not a Json Object");
+			return true;
+		}
+		
 
 		switch(message.getCommand())
 		{
